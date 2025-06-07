@@ -724,6 +724,7 @@
         // 🎯 設定觸控事件
         function setupTouchEvents(element, index) {
             let touchStarted = false;
+            let isDraggingThis = false;
             
             // 觸控開始
             element.addEventListener('touchstart', (e) => {
@@ -751,6 +752,7 @@
                                 isAuthenticated = true;
                                 updateDebugInfo('✅ 密碼正確！');
                                 startDragMode(e, index);
+                                isDraggingThis = true;
                             } else if (passwordInput !== null) {
                                 updateDebugInfo('❌ 密碼錯誤！');
                                 showDragHint(false);
@@ -758,19 +760,55 @@
                         } else {
                             updateDebugInfo('✅ 已有權限，開始拖拽');
                             startDragMode(e, index);
+                            isDraggingThis = true;
                         }
                     }
                 }, 200); // 200ms 長按觸發拖拽
                 
             }, { passive: false });
             
-            // 觸控移動 - 防止意外結束
+            // 🔥 修正：在元素上處理移動事件
             element.addEventListener('touchmove', (e) => {
-                if (touchStarted && longPressTimer) {
-                    // 如果還在長按計時中，不要取消
-                    e.preventDefault();
-                    e.stopPropagation();
+                if (!isDraggingThis || !isDragging) {
+                    return;
                 }
+                
+                e.preventDefault();
+                e.stopPropagation();
+                
+                updateDebugInfo('🎯 元素觸控移動');
+                
+                const container = document.getElementById('mapContainer');
+                const rect = container.getBoundingClientRect();
+                
+                const clientX = e.touches[0].clientX;
+                const clientY = e.touches[0].clientY;
+                
+                // 計算新位置
+                const newCenterX = clientX - dragOffset.x;
+                const newCenterY = clientY - dragOffset.y;
+                
+                // 轉換為容器內的座標
+                const containerX = newCenterX - rect.left;
+                const containerY = newCenterY - rect.top;
+                
+                const newGrid = pixelToGrid(containerX, containerY);
+                
+                // 更新位置
+                people[dragPerson].gridX = newGrid.gridX;
+                people[dragPerson].gridY = newGrid.gridY;
+                
+                updateDebugInfo(`🎯 拖拽移動中<br/>格線: (${newGrid.gridX}, ${newGrid.gridY})`);
+                
+                renderPeople();
+                
+                // 創建拖拽軌跡
+                createDragTrail(containerX, containerY);
+                
+                // 更新座標顯示
+                document.getElementById('coords').textContent = 
+                    `🎯 拖拽中: 格線(${newGrid.gridX}, ${newGrid.gridY})`;
+                    
             }, { passive: false });
             
             // 🔥 修正：手指放開就結束拖拽
@@ -780,6 +818,7 @@
                 
                 const touchDuration = Date.now() - touchStartTime;
                 touchStarted = false;
+                isDraggingThis = false;
                 
                 updateDebugInfo(`📱 觸控結束 (${touchDuration}ms)`);
                 
@@ -804,6 +843,7 @@
             // 觸控取消處理
             element.addEventListener('touchcancel', (e) => {
                 touchStarted = false;
+                isDraggingThis = false;
                 if (longPressTimer) {
                     clearTimeout(longPressTimer);
                     longPressTimer = null;
