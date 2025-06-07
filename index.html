@@ -12,8 +12,8 @@
             font-family: 'Courier New', monospace;
             color: #ecf0f1;
             overflow: auto;
-            /* 🔥 禁止手機原生縮放 */
-            touch-action: pan-x pan-y;
+            /* 🔥 允許手機原生縮放和拖拽 */
+            touch-action: manipulation;
             user-select: none;
         }
         
@@ -710,13 +710,31 @@
                 currentTouchTarget = element;
                 touchStartTime = Date.now();
                 
+                updateDebugInfo('📱 觸控開始...');
+                
                 // 立即顯示觸控反饋
                 showTouchFeedback(element, true);
                 
                 // 設定長按計時器
                 longPressTimer = setTimeout(() => {
                     if (touchStarted) {
-                        startDragMode(e, index);
+                        updateDebugInfo('⏰ 長按觸發，檢查權限...');
+                        
+                        // 🔐 先檢查權限
+                        if (!isAuthenticated) {
+                            const passwordInput = prompt('🔐 請輸入編輯密碼：');
+                            if (passwordInput === EDIT_PASSWORD) {
+                                isAuthenticated = true;
+                                updateDebugInfo('✅ 密碼正確！');
+                                startDragMode(e, index);
+                            } else if (passwordInput !== null) {
+                                updateDebugInfo('❌ 密碼錯誤！');
+                                showDragHint(false);
+                            }
+                        } else {
+                            updateDebugInfo('✅ 已有權限，開始拖拽');
+                            startDragMode(e, index);
+                        }
                     }
                 }, 200); // 200ms 長按觸發拖拽
                 
@@ -739,6 +757,8 @@
                 const touchDuration = Date.now() - touchStartTime;
                 touchStarted = false;
                 
+                updateDebugInfo(`📱 觸控結束 (${touchDuration}ms)`);
+                
                 // 清除長按計時器
                 if (longPressTimer) {
                     clearTimeout(longPressTimer);
@@ -750,6 +770,7 @@
                 
                 // 只有在非拖拽狀態下才結束拖拽
                 if (isDragging && touchDuration > 200) {
+                    updateDebugInfo('🎯 拖拽中的觸控結束，不立即停止');
                     // 拖拽中的 touchend，不要立即結束
                     return;
                 }
@@ -765,6 +786,7 @@
                     longPressTimer = null;
                 }
                 showTouchFeedback(element, false);
+                updateDebugInfo('📱 觸控被取消');
             });
             
             // 滑鼠事件（桌面）
@@ -775,19 +797,16 @@
         
         // 🎯 開始拖拽模式
         function startDragMode(e, index) {
-            updateDebugInfo('🔐 檢查編輯權限...');
+            updateDebugInfo('🎯 startDragMode 被呼叫');
             
-            // 🔐 檢查編輯權限
-            if (!checkEditPassword()) {
-                showDragHint(false);
-                updateDebugInfo('❌ 權限被拒絕');
+            if (isDragging) {
+                updateDebugInfo('❌ 已經在拖拽中');
                 return;
             }
-            
-            updateDebugInfo('✅ 權限通過，開始拖拽...');
-            
-            if (isDragging) return;
-            if (e.target.classList.contains('delete-btn')) return;
+            if (e.target.classList.contains('delete-btn')) {
+                updateDebugInfo('❌ 點到刪除按鈕');
+                return;
+            }
             
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -813,7 +832,7 @@
                 navigator.vibrate([100, 50, 100]);
             }
             
-            updateDebugInfo(`🎯 拖拽開始: ${people[index].name}<br/>狀態: ${isDragging ? '拖拽中' : '未拖拽'}`);
+            updateDebugInfo(`🎯 拖拽開始: ${people[index].name}<br/>狀態: ${isDragging ? '拖拽中' : '未拖拽'}<br/>拖拽對象: ${dragPerson}`);
             
             e.preventDefault();
             e.stopPropagation();
@@ -1037,11 +1056,16 @@
         
         // 🎯 全域觸控結束處理
         document.addEventListener('touchend', (e) => {
+            updateDebugInfo('🌐 全域觸控結束');
+            
             // 只有在真正拖拽中才結束
             if (isDragging && dragPerson !== null) {
+                updateDebugInfo('🎯 偵測到拖拽中，準備結束...');
                 setTimeout(() => {
                     endDrag();
                 }, 50); // 稍微延遲，避免過早結束
+            } else {
+                updateDebugInfo(`🌐 非拖拽狀態結束<br/>isDragging: ${isDragging}<br/>dragPerson: ${dragPerson}`);
             }
         }, { passive: false });
 
