@@ -749,7 +749,7 @@
                 }
             }, { passive: false });
             
-            // 短點擊處理
+            // 🔥 修正：手指放開就結束拖拽
             element.addEventListener('touchend', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -768,11 +768,10 @@
                 // 移除觸控反饋
                 showTouchFeedback(element, false);
                 
-                // 只有在非拖拽狀態下才結束拖拽
-                if (isDragging && touchDuration > 200) {
-                    updateDebugInfo('🎯 拖拽中的觸控結束，不立即停止');
-                    // 拖拽中的 touchend，不要立即結束
-                    return;
+                // 🔥 修正：放開手指就結束拖拽
+                if (isDragging) {
+                    updateDebugInfo('🎯 手指放開，結束拖拽');
+                    endDrag();
                 }
                 
                 currentTouchTarget = null;
@@ -787,6 +786,11 @@
                 }
                 showTouchFeedback(element, false);
                 updateDebugInfo('📱 觸控被取消');
+                
+                // 觸控取消也要結束拖拽
+                if (isDragging) {
+                    endDrag();
+                }
             });
             
             // 滑鼠事件（桌面）
@@ -1054,20 +1058,20 @@
                 
         }, { passive: false });
         
-        // 🎯 全域觸控結束處理
-        document.addEventListener('touchend', (e) => {
-            updateDebugInfo('🌐 全域觸控結束');
-            
-            // 只有在真正拖拽中才結束
-            if (isDragging && dragPerson !== null) {
-                updateDebugInfo('🎯 偵測到拖拽中，準備結束...');
-                setTimeout(() => {
-                    endDrag();
-                }, 50); // 稍微延遲，避免過早結束
-            } else {
-                updateDebugInfo(`🌐 非拖拽狀態結束<br/>isDragging: ${isDragging}<br/>dragPerson: ${dragPerson}`);
-            }
-        }, { passive: false });
+        // 🎯 全域觸控結束處理 - 移除，避免衝突
+        // document.addEventListener('touchend', (e) => {
+        //     updateDebugInfo('🌐 全域觸控結束');
+        //     
+        //     // 只有在真正拖拽中才結束
+        //     if (isDragging && dragPerson !== null) {
+        //         updateDebugInfo('🎯 偵測到拖拽中，準備結束...');
+        //         setTimeout(() => {
+        //             endDrag();
+        //         }, 50); // 稍微延遲，避免過早結束
+        //     } else {
+        //         updateDebugInfo(`🌐 非拖拽狀態結束<br/>isDragging: ${isDragging}<br/>dragPerson: ${dragPerson}`);
+        //     }
+        // }, { passive: false });
 
         // 事件監聽器 - 支援觸控
         function setupEventListeners() {
