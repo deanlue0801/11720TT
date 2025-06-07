@@ -153,6 +153,44 @@
             transform: rotate(45deg) scale(1.1);
             box-shadow: 0 0 20px rgba(231, 76, 60, 0.8);
             cursor: grabbing;
+            animation: dragPulse 0.8s ease-in-out infinite alternate;
+        }
+        
+        @keyframes dragPulse {
+            from { 
+                box-shadow: 0 0 20px rgba(231, 76, 60, 0.8);
+            }
+            to { 
+                box-shadow: 0 0 30px rgba(231, 76, 60, 1);
+            }
+        }
+        
+        /* 拖拽提示 */
+        .drag-hint {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(52, 73, 94, 0.95);
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            z-index: 2000;
+            display: none;
+            font-size: 14px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+        }
+        
+        .drag-hint.show {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
         }
         
         /* 顏色主題 */
@@ -266,6 +304,12 @@
     </div>
     
     <div class="map-container" id="mapContainer"></div>
+    
+    <!-- 拖拽提示 -->
+    <div class="drag-hint" id="dragHint">
+        <div>🎯 正在拖拽</div>
+        <div style="font-size: 12px; margin-top: 5px;">移動到目標位置後放開</div>
+    </div>
     
     <div class="coords" id="coords">座標: 0, 0</div>
     <div class="info">
@@ -480,10 +524,14 @@
             dragOffset.y = clientY - (rect.top + rect.height/2);
 
             element.classList.add('dragging');
+            
+            // 顯示拖拽提示
+            const dragHint = document.getElementById('dragHint');
+            dragHint.classList.add('show');
 
             // 震動反饋
             if (navigator.vibrate) {
-                navigator.vibrate(100);
+                navigator.vibrate([100, 50, 100]);
             }
 
             e.preventDefault();
@@ -500,6 +548,7 @@
             if (!isDragging || dragPerson === null) return;
 
             e.preventDefault();
+            e.stopPropagation();
 
             const container = document.getElementById('mapContainer');
             const rect = container.getBoundingClientRect();
@@ -518,13 +567,18 @@
 
             // 更新座標顯示
             document.getElementById('coords').textContent = 
-                `拖拽中: 格線(${newGrid.gridX}, ${newGrid.gridY})`;
+                `🎯 拖拽中: 格線(${newGrid.gridX}, ${newGrid.gridY})`;
         }
 
         function endDrag() {
             if (isDragging) {
                 isDragging = false;
                 dragPerson = null;
+                
+                // 隱藏拖拽提示
+                const dragHint = document.getElementById('dragHint');
+                dragHint.classList.remove('show');
+                
                 document.querySelectorAll('.person').forEach(p => p.classList.remove('dragging'));
             }
         }
