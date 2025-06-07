@@ -1019,7 +1019,12 @@
 
         // 🎯 全域觸控移動處理
         document.addEventListener('touchmove', (e) => {
-            if (!isDragging || dragPerson === null) return;
+            updateDebugInfo(`🌐 全域觸控移動<br/>isDragging: ${isDragging}<br/>dragPerson: ${dragPerson}`);
+            
+            if (!isDragging || dragPerson === null) {
+                updateDebugInfo('❌ 不在拖拽狀態，忽略移動');
+                return;
+            }
             
             // 🔥 重要：防止頁面滾動和其他觸控行為
             e.preventDefault();
@@ -1045,7 +1050,7 @@
             people[dragPerson].gridX = newGrid.gridX;
             people[dragPerson].gridY = newGrid.gridY;
             
-            updateDebugInfo(`🎯 拖拽移動中<br/>格線: (${newGrid.gridX}, ${newGrid.gridY})<br/>狀態: ${isDragging ? '拖拽中' : '未拖拽'}`);
+            updateDebugInfo(`🎯 拖拽移動中<br/>格線: (${newGrid.gridX}, ${newGrid.gridY})<br/>狀態: ${isDragging ? '拖拽中' : '未拖拽'}<br/>觸控: (${Math.round(clientX)}, ${Math.round(clientY)})`);
             
             renderPeople();
             
