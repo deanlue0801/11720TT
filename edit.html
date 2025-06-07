@@ -12,7 +12,6 @@
             font-family: 'Courier New', monospace;
             color: #ecf0f1;
             overflow: auto;
-            touch-action: manipulation;
         }
         
         .header {
@@ -63,31 +62,18 @@
             cursor: pointer;
             text-decoration: none;
             font-size: 12px;
-            transition: all 0.2s ease;
         }
         
         .btn:hover {
             background: #2ecc71;
         }
         
-        .btn:active {
-            transform: scale(0.95);
-        }
-        
         .btn.danger {
             background: #e74c3c;
         }
         
-        .btn.danger:hover {
-            background: #c0392b;
-        }
-        
         .btn.view {
             background: #3498db;
-        }
-        
-        .btn.view:hover {
-            background: #2980b9;
         }
         
         .status {
@@ -119,7 +105,7 @@
             font-size: 11px;
             white-space: nowrap;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-            cursor: grab;
+            cursor: move;
             border-radius: 4px;
             background: rgba(46, 204, 113, 0.3);
             border: 3px solid #2ecc71;
@@ -132,8 +118,6 @@
             z-index: 10;
             transform: rotate(45deg);
             box-sizing: border-box;
-            transition: all 0.2s ease;
-            touch-action: none;
         }
         
         .person .text {
@@ -147,90 +131,11 @@
         }
         
         .person.dragging {
-            background: rgba(231, 76, 60, 0.8) !important;
+            background: rgba(231, 76, 60, 0.6) !important;
             border-color: #e74c3c !important;
-            border-width: 4px !important;
             z-index: 1001;
-            transform: rotate(45deg) scale(1.2);
-            box-shadow: 0 0 30px rgba(231, 76, 60, 1), 0 0 60px rgba(231, 76, 60, 0.5);
-            cursor: grabbing;
-            animation: dragPulse 0.6s ease-in-out infinite alternate;
-        }
-        
-        @keyframes dragPulse {
-            from { 
-                box-shadow: 0 0 30px rgba(231, 76, 60, 1), 0 0 60px rgba(231, 76, 60, 0.5);
-                transform: rotate(45deg) scale(1.2);
-            }
-            to { 
-                box-shadow: 0 0 40px rgba(231, 76, 60, 1), 0 0 80px rgba(231, 76, 60, 0.7);
-                transform: rotate(45deg) scale(1.25);
-            }
-        }
-        
-        /* 拖拽軌跡 */
-        .drag-trail {
-            position: absolute;
-            width: 8px;
-            height: 8px;
-            background: radial-gradient(circle, rgba(231, 76, 60, 1) 0%, rgba(231, 76, 60, 0) 70%);
-            border-radius: 50%;
-            pointer-events: none;
-            z-index: 999;
-            animation: trailFade 1.5s ease-out forwards;
-        }
-        
-        @keyframes trailFade {
-            0% { 
-                opacity: 1; 
-                transform: scale(1);
-                background: radial-gradient(circle, rgba(231, 76, 60, 1) 0%, rgba(231, 76, 60, 0.8) 70%);
-            }
-            50% {
-                opacity: 0.7;
-                transform: scale(1.5);
-            }
-            100% { 
-                opacity: 0; 
-                transform: scale(2);
-                background: radial-gradient(circle, rgba(231, 76, 60, 0.3) 0%, rgba(231, 76, 60, 0) 70%);
-            }
-        }
-        
-        /* 拖拽提示升級 */
-        .drag-hint {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: linear-gradient(45deg, rgba(231, 76, 60, 0.95), rgba(192, 57, 43, 0.95));
-            color: #ffffff;
-            padding: 25px 35px;
-            border-radius: 15px;
-            text-align: center;
-            z-index: 2000;
-            display: none;
-            font-size: 16px;
-            font-weight: bold;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 20px rgba(231, 76, 60, 0.3);
-            backdrop-filter: blur(10px);
-            border: 2px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        .drag-hint.show {
-            display: block;
-            animation: hintPulse 0.5s ease infinite alternate;
-        }
-        
-        @keyframes hintPulse {
-            from { 
-                transform: translate(-50%, -50%) scale(1);
-                box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 20px rgba(231, 76, 60, 0.3);
-            }
-            to { 
-                transform: translate(-50%, -50%) scale(1.05);
-                box-shadow: 0 12px 40px rgba(0,0,0,0.6), 0 0 30px rgba(231, 76, 60, 0.5);
-            }
+            transform: rotate(45deg) scale(1.1);
+            box-shadow: 0 0 15px rgba(231, 76, 60, 0.8);
         }
         
         /* 顏色主題 */
@@ -286,31 +191,6 @@
             border-radius: 4px;
             pointer-events: none;
         }
-        
-        @media (max-width: 768px) {
-            .header {
-                padding: 8px 15px;
-            }
-            
-            .header h1 {
-                font-size: 1.1em;
-            }
-            
-            .controls {
-                gap: 5px;
-            }
-            
-            .controls input, .controls select {
-                font-size: 11px;
-                padding: 5px;
-                min-width: 60px;
-            }
-            
-            .btn {
-                padding: 5px 8px;
-                font-size: 11px;
-            }
-        }
     </style>
 </head>
 <body>
@@ -345,15 +225,9 @@
     
     <div class="map-container" id="mapContainer"></div>
     
-    <!-- 拖拽提示升級版 -->
-    <div class="drag-hint" id="dragHint">
-        <div>🎯 正在拖拽</div>
-        <div style="font-size: 14px; margin-top: 8px; opacity: 0.9;">移動到目標位置後放開</div>
-    </div>
-    
     <div class="coords" id="coords">座標: 0, 0</div>
     <div class="info">
-        編輯模式 | 項目數: <span id="peopleCount">0</span> | 拖拽移動 | 右鍵改色
+        編輯模式 | 項目數: <span id="peopleCount">0</span> | 直接拖拽移動
     </div>
 
     <script type="module">
@@ -361,7 +235,7 @@
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getDatabase, ref, set, onValue } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
-        // 進入編輯模式前的密碼驗證
+        // 密碼驗證
         function checkPassword() {
             const today = new Date();
             const year = today.getFullYear();
@@ -369,17 +243,15 @@
             const day = String(today.getDate()).padStart(2, '0');
             const todayPassword = `bearDen${year}${month}${day}`;
             
-            const password = prompt('🔐 請輸入編輯密碼才能進入編輯模式：');
+            const password = prompt('🔐 請輸入編輯密碼：');
             if (password !== todayPassword) {
                 alert('❌ 密碼錯誤！');
                 window.location.href = 'view.html';
                 return false;
             }
-            alert('✅ 密碼正確，歡迎進入編輯模式！');
             return true;
         }
 
-        // 立即驗證密碼
         if (!checkPassword()) {
             throw new Error('Password verification failed');
         }
@@ -396,7 +268,7 @@
             measurementId: "G-9FZNC307GC"
         };
 
-        // 地圖配置
+        // 基本變數
         const MAP_WIDTH = 15000;
         const MAP_HEIGHT = 12000;
         const GRID_ORIGIN_X = MAP_WIDTH / 2;
@@ -408,9 +280,7 @@
         let dragPerson = null;
         let dragOffset = {x: 0, y: 0};
         let isUpdatingFromFirebase = false;
-        let trailTimer = null; // 🔥 軌跡控制器
 
-        // 預設資料
         const defaultPeople = [
             {name: '熊窩', gridX: 0, gridY: 0, type: 'center', color: 'red'},
             {name: '急先鋒', gridX: 0, gridY: -3, type: 'person', color: 'green'},
@@ -418,7 +288,7 @@
             {name: 'Potato Sue', gridX: 3, gridY: 1, type: 'person', color: 'purple'}
         ];
 
-        // 初始化 Firebase
+        // Firebase 初始化
         try {
             app = initializeApp(firebaseConfig);
             database = getDatabase(app);
@@ -432,15 +302,11 @@
             renderPeople();
         }
 
-        // Firebase 函數
         function saveToFirebase() {
             if (!database || isUpdatingFromFirebase) return;
             try {
                 const layoutRef = ref(database, 'bearDenLayout');
-                set(layoutRef, {
-                    people: people,
-                    lastUpdated: Date.now()
-                });
+                set(layoutRef, { people: people, lastUpdated: Date.now() });
             } catch (error) {
                 console.warn('Firebase 儲存失敗:', error);
             }
@@ -472,10 +338,7 @@
             const gridStep = 40;
             const rotatedX = (gridX - gridY) * gridStep / 2;
             const rotatedY = (gridX + gridY) * gridStep / 2;
-            return {
-                x: GRID_ORIGIN_X + rotatedX,
-                y: GRID_ORIGIN_Y + rotatedY
-            };
+            return { x: GRID_ORIGIN_X + rotatedX, y: GRID_ORIGIN_Y + rotatedY };
         }
 
         function pixelToGrid(pixelX, pixelY) {
@@ -487,11 +350,10 @@
             return {gridX, gridY};
         }
 
-        // 渲染函數
+        // 渲染
         function renderPeople() {
             const container = document.getElementById('mapContainer');
             container.innerHTML = '';
-            
             document.getElementById('peopleCount').textContent = people.length;
 
             people.forEach((item, index) => {
@@ -520,7 +382,6 @@
                 div.style.left = (centerPos.x - size/2) + 'px';
                 div.style.top = (centerPos.y - size/2) + 'px';
 
-                // 刪除按鈕
                 const deleteBtn = document.createElement('button');
                 deleteBtn.className = 'delete-btn';
                 deleteBtn.textContent = '×';
@@ -536,21 +397,20 @@
                     changeColor(index);
                 });
 
-                // 拖拽事件
+                // 超簡單拖拽
                 div.addEventListener('mousedown', startDrag);
-                div.addEventListener('touchstart', startDrag, { passive: false });
+                div.addEventListener('touchstart', startDrag);
 
                 container.appendChild(div);
             });
 
-            if (!isUpdatingFromFirebase) {
-                saveToFirebase();
-            }
+            if (!isUpdatingFromFirebase) saveToFirebase();
         }
 
-        // 拖拽功能
+        // 超簡單拖拽邏輯
         function startDrag(e) {
             if (e.target.classList.contains('delete-btn')) return;
+            e.preventDefault();
 
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -565,31 +425,16 @@
             dragOffset.y = clientY - (rect.top + rect.height/2);
 
             element.classList.add('dragging');
-            
-            // 顯示拖拽提示
-            const dragHint = document.getElementById('dragHint');
-            dragHint.classList.add('show');
-
-            // 震動反饋
-            if (navigator.vibrate) {
-                navigator.vibrate([100, 50, 100]);
-            }
-
-            e.preventDefault();
-            e.stopPropagation();
         }
 
-        // 全域拖拽處理
         document.addEventListener('mousemove', handleDrag);
-        document.addEventListener('touchmove', handleDrag, { passive: false });
+        document.addEventListener('touchmove', handleDrag);
         document.addEventListener('mouseup', endDrag);
         document.addEventListener('touchend', endDrag);
 
         function handleDrag(e) {
             if (!isDragging || dragPerson === null) return;
-
             e.preventDefault();
-            e.stopPropagation();
 
             const container = document.getElementById('mapContainer');
             const rect = container.getBoundingClientRect();
@@ -604,41 +449,13 @@
             people[dragPerson].gridX = newGrid.gridX;
             people[dragPerson].gridY = newGrid.gridY;
 
-            // 🔥 創建炫酷拖拽軌跡
-            createDragTrail(newPixelX, newPixelY);
-
             renderPeople();
-
-            // 更新座標顯示
-            document.getElementById('coords').textContent = 
-                `🎯 拖拽中: 格線(${newGrid.gridX}, ${newGrid.gridY})`;
-        }
-        
-        // 🔥 創建拖拽軌跡特效
-        function createDragTrail(x, y) {
-            const trail = document.createElement('div');
-            trail.className = 'drag-trail';
-            trail.style.left = x + 'px';
-            trail.style.top = y + 'px';
-            document.getElementById('mapContainer').appendChild(trail);
-            
-            // 1.5秒後自動移除
-            setTimeout(() => {
-                if (trail.parentNode) {
-                    trail.parentNode.removeChild(trail);
-                }
-            }, 1500);
         }
 
         function endDrag() {
             if (isDragging) {
                 isDragging = false;
                 dragPerson = null;
-                
-                // 隱藏拖拽提示
-                const dragHint = document.getElementById('dragHint');
-                dragHint.classList.remove('show');
-                
                 document.querySelectorAll('.person').forEach(p => p.classList.remove('dragging'));
             }
         }
@@ -646,19 +463,13 @@
         // 功能函數
         window.addItem = function() {
             const nameInput = document.getElementById('newItemName');
-            const typeSelect = document.getElementById('itemType');
-            const colorSelect = document.getElementById('itemColor');
             const name = nameInput.value.trim();
-            const type = typeSelect.value;
-            const color = colorSelect.value;
-
             if (name) {
                 people.push({
                     name: name,
-                    gridX: 6,
-                    gridY: 6,
-                    type: type,
-                    color: color
+                    gridX: 6, gridY: 6,
+                    type: document.getElementById('itemType').value,
+                    color: document.getElementById('itemColor').value
                 });
                 nameInput.value = '';
                 renderPeople();
@@ -666,8 +477,7 @@
         }
 
         function deleteItem(index) {
-            const itemName = people[index].name;
-            if (confirm(`確定要刪除 "${itemName}" 嗎？`)) {
+            if (confirm(`確定要刪除 "${people[index].name}" 嗎？`)) {
                 people.splice(index, 1);
                 renderPeople();
             }
@@ -678,22 +488,12 @@
             const currentColor = people[index].color || 'green';
             const currentIndex = colors.indexOf(currentColor);
             const nextIndex = (currentIndex + 1) % colors.length;
-
             people[index].color = colors[nextIndex];
             renderPeople();
         }
 
         window.exportLayout = function() {
-            const layout = people.map(p => {
-                const typeNames = {
-                    'small': '小建築(1×1)',
-                    'person': '成員(2×2)', 
-                    'center': '中心建築(3×3)',
-                    'large': '大建築(4×4)'
-                };
-                return `${p.name}: ${typeNames[p.type]} 格線(${p.gridX}, ${p.gridY}) 顏色:${p.color}`;
-            }).join('\n');
-
+            const layout = people.map(p => `${p.name}: 格線(${p.gridX}, ${p.gridY}) 顏色:${p.color}`).join('\n');
             const blob = new Blob([layout], {type: 'text/plain'});
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -704,52 +504,22 @@
         }
 
         window.clearAll = function() {
-            // 管理員密碼
-            const adminPassword = String.fromCharCode(83,75,89,49,49,52,55,100,101,97,110); // SKY1147dean
-            const itemCount = people.length;
-
-            const passwordInput = prompt('🔐 請輸入管理員密碼才能清空所有項目：');
+            const adminPassword = "SKY1147dean";
+            const passwordInput = prompt('🔐 請輸入管理員密碼：');
             if (passwordInput !== adminPassword) {
-                alert('❌ 密碼錯誤，操作已取消');
+                alert('❌ 密碼錯誤');
                 return;
             }
-
-            if (confirm(`確定要清空所有 ${itemCount} 個項目嗎？這個操作無法復原！`)) {
+            if (confirm('確定要清空所有項目嗎？')) {
                 people = [];
                 renderPeople();
-                alert('✅ 所有項目已清空');
             }
         }
 
-        // 滑鼠移動顯示座標
-        document.addEventListener('mousemove', (e) => {
-            if (isDragging) return;
-
-            const container = document.getElementById('mapContainer');
-            const rect = container.getBoundingClientRect();
-            const pixelX = e.clientX - rect.left;
-            const pixelY = e.clientY - rect.top;
-            const grid = pixelToGrid(pixelX, pixelY);
-
-            document.getElementById('coords').textContent = 
-                `座標: ${Math.round(pixelX)}, ${Math.round(pixelY)} | 格線: (${grid.gridX}, ${grid.gridY})`;
-        });
-
-        // Enter 鍵新增項目
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && document.getElementById('newItemName') === document.activeElement) {
-                window.addItem();
-            }
-        });
-
-        // 初始化定位
-        function initialize() {
-            const centerX = MAP_WIDTH / 2 - window.innerWidth / 2;
-            const centerY = MAP_HEIGHT / 2 - window.innerHeight / 2;
-            window.scrollTo(centerX, centerY);
-        }
-
-        initialize();
+        // 初始化
+        const centerX = MAP_WIDTH / 2 - window.innerWidth / 2;
+        const centerY = MAP_HEIGHT / 2 - window.innerHeight / 2;
+        window.scrollTo(centerX, centerY);
     </script>
 </body>
 </html>
