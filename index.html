@@ -1104,12 +1104,14 @@
             // 🤖 Android 需要全域處理
             if (!isAndroid()) return;
             
-            updateDebugInfo(`🤖 Android 全域觸控移動<br/>isDragging: ${isDragging}<br/>dragPerson: ${dragPerson}`);
+            updateDebugInfo(`🤖 Step1: 全域事件觸發<br/>有觸控點: ${e.touches.length}`);
             
             if (!isDragging || dragPerson === null) {
-                updateDebugInfo('❌ Android: 不在拖拽狀態');
+                updateDebugInfo(`🤖 Step2: 狀態檢查失敗<br/>isDragging: ${isDragging}<br/>dragPerson: ${dragPerson}`);
                 return;
             }
+            
+            updateDebugInfo('🤖 Step3: 開始處理移動');
             
             // 🔥 重要：防止頁面滾動和其他觸控行為
             e.preventDefault();
@@ -1121,6 +1123,8 @@
             const clientX = e.touches[0].clientX;
             const clientY = e.touches[0].clientY;
             
+            updateDebugInfo(`🤖 Step4: 取得座標<br/>X: ${Math.round(clientX)}<br/>Y: ${Math.round(clientY)}`);
+            
             // 🔥 修正：正確計算新位置
             const newCenterX = clientX - dragOffset.x;
             const newCenterY = clientY - dragOffset.y;
@@ -1131,11 +1135,16 @@
             
             const newGrid = pixelToGrid(containerX, containerY);
             
+            updateDebugInfo(`🤖 Step5: 計算格線<br/>格線: (${newGrid.gridX}, ${newGrid.gridY})<br/>容器座標: (${Math.round(containerX)}, ${Math.round(containerY)})`);
+            
             // 🔥 直接更新位置
+            const oldGridX = people[dragPerson].gridX;
+            const oldGridY = people[dragPerson].gridY;
+            
             people[dragPerson].gridX = newGrid.gridX;
             people[dragPerson].gridY = newGrid.gridY;
             
-            updateDebugInfo(`🤖 Android 拖拽移動<br/>格線: (${newGrid.gridX}, ${newGrid.gridY})`);
+            updateDebugInfo(`🤖 Step6: 更新位置<br/>從 (${oldGridX}, ${oldGridY})<br/>到 (${newGrid.gridX}, ${newGrid.gridY})`);
             
             renderPeople();
             
