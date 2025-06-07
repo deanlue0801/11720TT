@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>熊窩地圖 - 編輯模式</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #2c3e50;
+            font-family: 'Courier New', monospace;
+            color: #ecf0f1;
+            overflow: auto;
+            touch-action: manipulation;
+        }
+        
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 10px 20px;
+            background: rgba(52, 73, 94, 0.95);
+            backdrop-filter: blur(5px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(127, 140, 141, 0.3);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 1.3em;
+            color: #27ae60;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .controls input, .controls select {
+            padding: 6px;
+            background: #2c3e50;
+            border: 1px solid #7f8c8d;
+            color: #ecf0f1;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        
+        .btn {
+            padding: 6px 12px;
+            background: #27ae60;
+            border: none;
+            color: white;
+            border-radius: 3px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+        
+        .btn:hover {
+            background: #2ecc71;
+        }
+        
+        .btn:active {
+            transform: scale(0.95);
+        }
+        
+        .btn.danger {
+            background: #e74c3c;
+        }
+        
+        .btn.danger:hover {
+            background: #c0392b;
+        }
+        
+        .btn.view {
+            background: #3498db;
+        }
+        
+        .btn.view:hover {
+            background: #2980b9;
+        }
+        
+        .status {
+            background: #e74c3c;
+            padding: 4px 12px;
+            border-radius: 3px;
+            font-size: 11px;
+        }
+        
+        .status.connected {
+            background: #27ae60;
+        }
+        
+        .map-container {
+            position: relative;
+            width: 15000px;
+            height: 12000px;
+            margin: 0;
+            background: #34495e;
+            border: none;
+            cursor: crosshair;
+            overflow: visible;
+            margin-top: 80px;
+        }
+        
+        .person {
+            position: absolute;
+            color: #ffffff;
+            font-size: 11px;
+            white-space: nowrap;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            cursor: grab;
+            border-radius: 4px;
+            background: rgba(46, 204, 113, 0.3);
+            border: 3px solid #2ecc71;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-weight: bold;
+            z-index: 10;
+            transform: rotate(45deg);
+            box-sizing: border-box;
+            transition: all 0.2s ease;
+            touch-action: none;
+        }
+        
+        .person .text {
+            transform: rotate(-45deg);
+            pointer-events: none;
+        }
+        
+        .person:hover {
+            background: rgba(52, 152, 219, 0.4);
+            border-color: #3498db;
+        }
+        
+        .person.dragging {
+            background: rgba(231, 76, 60, 0.6) !important;
+            border-color: #e74c3c !important;
+            z-index: 1001;
+            transform: rotate(45deg) scale(1.1);
+            box-shadow: 0 0 20px rgba(231, 76, 60, 0.8);
+            cursor: grabbing;
+        }
+        
+        /* 顏色主題 */
+        .person.green { background: rgba(46, 204, 113, 0.3); border-color: #2ecc71; }
+        .person.blue { background: rgba(52, 152, 219, 0.3); border-color: #3498db; }
+        .person.purple { background: rgba(155, 89, 182, 0.3); border-color: #9b59b6; }
+        .person.orange { background: rgba(230, 126, 34, 0.3); border-color: #e67e22; }
+        .person.pink { background: rgba(233, 30, 99, 0.3); border-color: #e91e63; }
+        .person.yellow { background: rgba(241, 196, 15, 0.4); border-color: #f1c40f; }
+        .person.cyan { background: rgba(26, 188, 156, 0.3); border-color: #1abc9c; }
+        .person.red { background: rgba(231, 76, 60, 0.3); border-color: #e74c3c; }
+        
+        .delete-btn {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 16px;
+            height: 16px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 10px;
+            cursor: pointer;
+            display: none;
+            z-index: 15;
+        }
+        
+        .person:hover .delete-btn {
+            display: block;
+        }
+        
+        .coords {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            font-size: 12px;
+            color: #95a5a6;
+            background: rgba(44, 62, 80, 0.8);
+            padding: 8px;
+            border-radius: 4px;
+            pointer-events: none;
+        }
+        
+        .info {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            font-size: 12px;
+            color: #95a5a6;
+            background: rgba(44, 62, 80, 0.8);
+            padding: 8px;
+            border-radius: 4px;
+            pointer-events: none;
+        }
+        
+        @media (max-width: 768px) {
+            .header {
+                padding: 8px 15px;
+            }
+            
+            .header h1 {
+                font-size: 1.1em;
+            }
+            
+            .controls {
+                gap: 5px;
+            }
+            
+            .controls input, .controls select {
+                font-size: 11px;
+                padding: 5px;
+                min-width: 60px;
+            }
+            
+            .btn {
+                padding: 5px 8px;
+                font-size: 11px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>✏️ 熊窩地圖 - 編輯模式</h1>
+        <div class="controls">
+            <input type="text" id="newItemName" placeholder="輸入名稱" />
+            <select id="itemType">
+                <option value="person">成員 (2×2)</option>
+                <option value="small">小建築 (1×1)</option>
+                <option value="center">中心建築 (3×3)</option>
+                <option value="large">大建築 (4×4)</option>
+            </select>
+            <select id="itemColor">
+                <option value="green">綠色</option>
+                <option value="blue">藍色</option>
+                <option value="purple">紫色</option>
+                <option value="orange">橘色</option>
+                <option value="pink">粉色</option>
+                <option value="yellow">黃色</option>
+                <option value="cyan">青色</option>
+                <option value="red">紅色</option>
+            </select>
+            <button onclick="addItem()" class="btn">新增</button>
+            <button onclick="exportLayout()" class="btn">匯出</button>
+            <button onclick="clearAll()" class="btn danger">清空</button>
+            <div class="status" id="connectionStatus">連接中...</div>
+            <a href="view.html" class="btn view">👀 觀看</a>
+            <a href="index.html" class="btn">🏠 首頁</a>
+        </div>
+    </div>
+    
+    <div class="map-container" id="mapContainer"></div>
+    
+    <div class="coords" id="coords">座標: 0, 0</div>
+    <div class="info">
+        編輯模式 | 項目數: <span id="peopleCount">0</span> | 拖拽移動 | 右鍵改色
+    </div>
+
+    <script type="module">
+        // Firebase SDK
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getDatabase, ref, set, onValue } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+        // 進入編輯模式前的密碼驗證
+        function checkPassword() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const todayPassword = `bearDen${year}${month}${day}`;
+            
+            const password = prompt('🔐 請輸入編輯密碼才能進入編輯模式：');
+            if (password !== todayPassword) {
+                alert('❌ 密碼錯誤！');
+                window.location.href = 'view.html';
+                return false;
+            }
+            alert('✅ 密碼正確，歡迎進入編輯模式！');
+            return true;
+        }
+
+        // 立即驗證密碼
+        if (!checkPassword()) {
+            throw new Error('Password verification failed');
+        }
+
+        // Firebase 配置
+        const firebaseConfig = {
+            apiKey: "AIzaSyBHG_bYTMT9s9XkeU5s1LIanFiZDN-081w",
+            authDomain: "sky-bb549.firebaseapp.com",
+            databaseURL: "https://sky-bb549-default-rtdb.firebaseio.com/",
+            projectId: "sky-bb549",
+            storageBucket: "sky-bb549.firebasestorage.app",
+            messagingSenderId: "105237288983",
+            appId: "1:105237288983:web:5dcec35e9306d043a96452",
+            measurementId: "G-9FZNC307GC"
+        };
+
+        // 地圖配置
+        const MAP_WIDTH = 15000;
+        const MAP_HEIGHT = 12000;
+        const GRID_ORIGIN_X = MAP_WIDTH / 2;
+        const GRID_ORIGIN_Y = MAP_HEIGHT / 2;
+        
+        let people = [];
+        let app, database;
+        let isDragging = false;
+        let dragPerson = null;
+        let dragOffset = {x: 0, y: 0};
+        let isUpdatingFromFirebase = false;
+
+        // 預設資料
+        const defaultPeople = [
+            {name: '熊窩', gridX: 0, gridY: 0, type: 'center', color: 'red'},
+            {name: '急先鋒', gridX: 0, gridY: -3, type: 'person', color: 'green'},
+            {name: 'Patato Q', gridX: 3, gridY: -1, type: 'person', color: 'blue'},
+            {name: 'Potato Sue', gridX: 3, gridY: 1, type: 'person', color: 'purple'}
+        ];
+
+        // 初始化 Firebase
+        try {
+            app = initializeApp(firebaseConfig);
+            database = getDatabase(app);
+            document.getElementById('connectionStatus').textContent = '已連接';
+            document.getElementById('connectionStatus').className = 'status connected';
+            setupFirebaseListener();
+        } catch (error) {
+            console.warn('Firebase 連接失敗:', error);
+            document.getElementById('connectionStatus').textContent = '離線模式';
+            people = [...defaultPeople];
+            renderPeople();
+        }
+
+        // Firebase 函數
+        function saveToFirebase() {
+            if (!database || isUpdatingFromFirebase) return;
+            try {
+                const layoutRef = ref(database, 'bearDenLayout');
+                set(layoutRef, {
+                    people: people,
+                    lastUpdated: Date.now()
+                });
+            } catch (error) {
+                console.warn('Firebase 儲存失敗:', error);
+            }
+        }
+
+        function setupFirebaseListener() {
+            const layoutRef = ref(database, 'bearDenLayout');
+            onValue(layoutRef, (snapshot) => {
+                const data = snapshot.val();
+                isUpdatingFromFirebase = true;
+                
+                if (data && data.people) {
+                    people = data.people;
+                } else {
+                    people = [...defaultPeople];
+                    setTimeout(() => {
+                        isUpdatingFromFirebase = false;
+                        saveToFirebase();
+                    }, 100);
+                }
+                
+                renderPeople();
+                isUpdatingFromFirebase = false;
+            });
+        }
+
+        // 座標轉換
+        function gridToPixel(gridX, gridY) {
+            const gridStep = 40;
+            const rotatedX = (gridX - gridY) * gridStep / 2;
+            const rotatedY = (gridX + gridY) * gridStep / 2;
+            return {
+                x: GRID_ORIGIN_X + rotatedX,
+                y: GRID_ORIGIN_Y + rotatedY
+            };
+        }
+
+        function pixelToGrid(pixelX, pixelY) {
+            const deltaX = pixelX - GRID_ORIGIN_X;
+            const deltaY = pixelY - GRID_ORIGIN_Y;
+            const gridStep = 40;
+            const gridX = Math.round((deltaX + deltaY) / gridStep);
+            const gridY = Math.round((deltaY - deltaX) / gridStep);
+            return {gridX, gridY};
+        }
+
+        // 渲染函數
+        function renderPeople() {
+            const container = document.getElementById('mapContainer');
+            container.innerHTML = '';
+            
+            document.getElementById('peopleCount').textContent = people.length;
+
+            people.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = `person ${item.color || 'green'}`;
+                div.dataset.index = index;
+
+                const textDiv = document.createElement('div');
+                textDiv.className = 'text';
+                textDiv.textContent = item.name;
+                div.appendChild(textDiv);
+
+                const gridSpacing = 40;
+                let size;
+                switch(item.type) {
+                    case 'small': size = gridSpacing * Math.sqrt(2); break;
+                    case 'person': size = gridSpacing * 2 * Math.sqrt(2); break;
+                    case 'center': size = gridSpacing * 3 * Math.sqrt(2); break;
+                    case 'large': size = gridSpacing * 4 * Math.sqrt(2); break;
+                    default: size = gridSpacing * 2 * Math.sqrt(2);
+                }
+
+                const centerPos = gridToPixel(item.gridX, item.gridY);
+                div.style.width = size + 'px';
+                div.style.height = size + 'px';
+                div.style.left = (centerPos.x - size/2) + 'px';
+                div.style.top = (centerPos.y - size/2) + 'px';
+
+                // 刪除按鈕
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.textContent = '×';
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteItem(index);
+                };
+                div.appendChild(deleteBtn);
+
+                // 右鍵改色
+                div.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    changeColor(index);
+                });
+
+                // 拖拽事件
+                div.addEventListener('mousedown', startDrag);
+                div.addEventListener('touchstart', startDrag, { passive: false });
+
+                container.appendChild(div);
+            });
+
+            if (!isUpdatingFromFirebase) {
+                saveToFirebase();
+            }
+        }
+
+        // 拖拽功能
+        function startDrag(e) {
+            if (e.target.classList.contains('delete-btn')) return;
+
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+            isDragging = true;
+            dragPerson = parseInt(e.target.closest('.person').dataset.index);
+
+            const element = e.target.closest('.person');
+            const rect = element.getBoundingClientRect();
+
+            dragOffset.x = clientX - (rect.left + rect.width/2);
+            dragOffset.y = clientY - (rect.top + rect.height/2);
+
+            element.classList.add('dragging');
+
+            // 震動反饋
+            if (navigator.vibrate) {
+                navigator.vibrate(100);
+            }
+
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        // 全域拖拽處理
+        document.addEventListener('mousemove', handleDrag);
+        document.addEventListener('touchmove', handleDrag, { passive: false });
+        document.addEventListener('mouseup', endDrag);
+        document.addEventListener('touchend', endDrag);
+
+        function handleDrag(e) {
+            if (!isDragging || dragPerson === null) return;
+
+            e.preventDefault();
+
+            const container = document.getElementById('mapContainer');
+            const rect = container.getBoundingClientRect();
+
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+            const newPixelX = clientX - rect.left - dragOffset.x;
+            const newPixelY = clientY - rect.top - dragOffset.y;
+            const newGrid = pixelToGrid(newPixelX, newPixelY);
+
+            people[dragPerson].gridX = newGrid.gridX;
+            people[dragPerson].gridY = newGrid.gridY;
+
+            renderPeople();
+
+            // 更新座標顯示
+            document.getElementById('coords').textContent = 
+                `拖拽中: 格線(${newGrid.gridX}, ${newGrid.gridY})`;
+        }
+
+        function endDrag() {
+            if (isDragging) {
+                isDragging = false;
+                dragPerson = null;
+                document.querySelectorAll('.person').forEach(p => p.classList.remove('dragging'));
+            }
+        }
+
+        // 功能函數
+        window.addItem = function() {
+            const nameInput = document.getElementById('newItemName');
+            const typeSelect = document.getElementById('itemType');
+            const colorSelect = document.getElementById('itemColor');
+            const name = nameInput.value.trim();
+            const type = typeSelect.value;
+            const color = colorSelect.value;
+
+            if (name) {
+                people.push({
+                    name: name,
+                    gridX: 6,
+                    gridY: 6,
+                    type: type,
+                    color: color
+                });
+                nameInput.value = '';
+                renderPeople();
+            }
+        }
+
+        function deleteItem(index) {
+            const itemName = people[index].name;
+            if (confirm(`確定要刪除 "${itemName}" 嗎？`)) {
+                people.splice(index, 1);
+                renderPeople();
+            }
+        }
+
+        function changeColor(index) {
+            const colors = ['green', 'blue', 'purple', 'orange', 'pink', 'yellow', 'cyan', 'red'];
+            const currentColor = people[index].color || 'green';
+            const currentIndex = colors.indexOf(currentColor);
+            const nextIndex = (currentIndex + 1) % colors.length;
+
+            people[index].color = colors[nextIndex];
+            renderPeople();
+        }
+
+        window.exportLayout = function() {
+            const layout = people.map(p => {
+                const typeNames = {
+                    'small': '小建築(1×1)',
+                    'person': '成員(2×2)', 
+                    'center': '中心建築(3×3)',
+                    'large': '大建築(4×4)'
+                };
+                return `${p.name}: ${typeNames[p.type]} 格線(${p.gridX}, ${p.gridY}) 顏色:${p.color}`;
+            }).join('\n');
+
+            const blob = new Blob([layout], {type: 'text/plain'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '熊窩座位表.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        window.clearAll = function() {
+            // 管理員密碼
+            const adminPassword = String.fromCharCode(83,75,89,49,49,52,55,100,101,97,110); // SKY1147dean
+            const itemCount = people.length;
+
+            const passwordInput = prompt('🔐 請輸入管理員密碼才能清空所有項目：');
+            if (passwordInput !== adminPassword) {
+                alert('❌ 密碼錯誤，操作已取消');
+                return;
+            }
+
+            if (confirm(`確定要清空所有 ${itemCount} 個項目嗎？這個操作無法復原！`)) {
+                people = [];
+                renderPeople();
+                alert('✅ 所有項目已清空');
+            }
+        }
+
+        // 滑鼠移動顯示座標
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) return;
+
+            const container = document.getElementById('mapContainer');
+            const rect = container.getBoundingClientRect();
+            const pixelX = e.clientX - rect.left;
+            const pixelY = e.clientY - rect.top;
+            const grid = pixelToGrid(pixelX, pixelY);
+
+            document.getElementById('coords').textContent = 
+                `座標: ${Math.round(pixelX)}, ${Math.round(pixelY)} | 格線: (${grid.gridX}, ${grid.gridY})`;
+        });
+
+        // Enter 鍵新增項目
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && document.getElementById('newItemName') === document.activeElement) {
+                window.addItem();
+            }
+        });
+
+        // 初始化定位
+        function initialize() {
+            const centerX = MAP_WIDTH / 2 - window.innerWidth / 2;
+            const centerY = MAP_HEIGHT / 2 - window.innerHeight / 2;
+            window.scrollTo(centerX, centerY);
+        }
+
+        initialize();
+    </script>
+</body>
+</html>
