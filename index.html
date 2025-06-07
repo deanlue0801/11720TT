@@ -867,22 +867,16 @@
                     
                     const newGrid = pixelToGrid(containerX, containerY);
                     
-                    // 🔥 Android 專用：強制更新位置
+                    // 🔥 Android：改回用 renderPeople()，但延遲更新除錯資訊
                     people[dragPerson].gridX = newGrid.gridX;
                     people[dragPerson].gridY = newGrid.gridY;
                     
-                    // 🔥 Android 專用：立即更新 DOM 而不重新渲染整個清單
-                    const dragElement = document.querySelector(`[data-index="${dragPerson}"]`);
-                    if (dragElement) {
-                        const newPos = gridToPixel(newGrid.gridX, newGrid.gridY);
-                        const size = parseFloat(dragElement.style.width);
-                        
-                        dragElement.style.left = (newPos.x - size/2) + 'px';
-                        dragElement.style.top = (newPos.y - size/2) + 'px';
-                        
-                        // 顯示在座標區域，不用 alert
+                    renderPeople();
+                    
+                    // 延遲顯示除錯資訊，避免干擾渲染
+                    setTimeout(() => {
                         androidDebug(`拖拽中: (${newGrid.gridX}, ${newGrid.gridY})`);
-                    }
+                    }, 10);
                     
                     // 創建拖拽軌跡
                     createDragTrail(containerX, containerY);
