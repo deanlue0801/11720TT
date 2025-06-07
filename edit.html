@@ -12,7 +12,6 @@
             font-family: 'Courier New', monospace;
             color: #ecf0f1;
             overflow: auto;
-            /* 🔥 允許手機原生縮放和拖拽 */
             touch-action: manipulation;
             user-select: none;
         }
@@ -123,8 +122,6 @@
             transform: rotate(45deg);
             box-sizing: border-box;
             transition: all 0.2s ease;
-            
-            /* 🔥 手機觸控優化 */
             touch-action: none;
             -webkit-tap-highlight-color: transparent;
         }
@@ -139,7 +136,6 @@
             border-color: #3498db;
         }
         
-        /* 🎯 觸控狀態優化 */
         .person:active,
         .person.touch-active {
             background: rgba(52, 152, 219, 0.5) !important;
@@ -157,8 +153,6 @@
             transform: rotate(45deg) scale(1.15);
             box-shadow: 0 0 25px rgba(231, 76, 60, 0.8);
             cursor: grabbing;
-            
-            /* 🔥 拖拽時的脈衝動畫 */
             animation: dragPulse 0.8s ease-in-out infinite alternate;
         }
         
@@ -171,7 +165,6 @@
             }
         }
         
-        /* 顏色主題 */
         .person.green { background: rgba(46, 204, 113, 0.3); border-color: #2ecc71; color: #ffffff; }
         .person.blue { background: rgba(52, 152, 219, 0.3); border-color: #3498db; color: #ffffff; }
         .person.purple { background: rgba(155, 89, 182, 0.3); border-color: #9b59b6; color: #ffffff; }
@@ -227,7 +220,6 @@
             pointer-events: none;
         }
         
-        /* 🔧 iOS 專用除錯顯示 */
         .debug-overlay {
             position: fixed;
             top: 80px;
@@ -249,7 +241,6 @@
             display: block;
         }
         
-        /* 🎯 觸控提示 */
         .touch-hint {
             position: fixed;
             top: 50%;
@@ -277,7 +268,6 @@
             to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
         }
         
-        /* 🔥 手機用戶專用提示 */
         .mobile-tips {
             position: fixed;
             bottom: 60px;
@@ -299,7 +289,6 @@
             }
         }
         
-        /* 🎯 拖拽提示線 */
         .drag-trail {
             position: absolute;
             width: 4px;
@@ -314,6 +303,42 @@
         @keyframes trailFade {
             0% { opacity: 1; transform: scale(1); }
             100% { opacity: 0; transform: scale(0.5); }
+        }
+        
+        /* 手機優化 */
+        @media (max-width: 768px) {
+            .header {
+                padding: 12px 16px;
+                gap: 8px;
+                font-size: 12px;
+                min-height: 70px;
+            }
+            
+            .header h1 {
+                font-size: 1.2em;
+            }
+            
+            .controls input, .controls select {
+                font-size: 14px;
+                padding: 8px 10px;
+                min-width: 80px;
+                min-height: 44px;
+            }
+            
+            .btn {
+                font-size: 13px;
+                padding: 8px 12px;
+                min-height: 44px;
+                min-width: 50px;
+            }
+            
+            .status {
+                font-size: 12px;
+                padding: 8px 12px;
+                min-height: 36px;
+                display: flex;
+                align-items: center;
+            }
         }
     </style>
 </head>
@@ -354,15 +379,12 @@
         編輯模式 | 項目數: <span id="peopleCount">0</span> | 直接拖拽移動
     </div>
     
-    <!-- 🔧 iOS 專用除錯顯示 -->
     <div class="debug-overlay" id="debugOverlay">除錯資訊</div>
     
-    <!-- 🔥 手機觸控提示 -->
     <div class="mobile-tips">
         💡 編輯模式：直接拖拽項目 | 右鍵改色
     </div>
     
-    <!-- 🎯 觸控提示彈窗 -->
     <div class="touch-hint" id="touchHint">
         <div>🎯 正在拖拽</div>
         <div style="font-size: 12px; margin-top: 5px;">移動到目標位置後放開</div>
@@ -419,7 +441,7 @@
         let dragOffset = {x: 0, y: 0};
         let isUpdatingFromFirebase = false;
         
-        // 🔥 新增觸控相關變數
+        // 觸控相關變數
         let touchStartTime = 0;
         let longPressTimer = null;
         let currentTouchTarget = null;
@@ -431,7 +453,7 @@
             {name: 'Potato Sue', gridX: 3, gridY: 1, type: 'person', color: 'purple'}
         ];
 
-        // 🔧 偵測裝置類型
+        // 偵測裝置類型
         function isAndroid() {
             return /Android/i.test(navigator.userAgent);
         }
@@ -440,12 +462,11 @@
             return /iPad|iPhone|iPod/.test(navigator.userAgent);
         }
         
-        // 🔧 Android 專用：直接在座標區域顯示除錯
+        // 除錯資訊
         function updateDebugInfo(message) {
             const debugOverlay = document.getElementById('debugOverlay');
             const coordsEl = document.getElementById('coords');
             
-            // 🤖 Android：直接顯示在座標區域
             if (coordsEl && isAndroid()) {
                 coordsEl.style.background = 'rgba(231, 76, 60, 0.9)';
                 coordsEl.style.color = 'white';
@@ -454,12 +475,10 @@
                 coordsEl.innerHTML = `🤖 ${message}`;
             }
             
-            // iOS 專用：中央顯示除錯資訊
             if (debugOverlay && isIOS()) {
                 debugOverlay.innerHTML = `🍎 ${message}`;
                 debugOverlay.classList.add('show');
                 
-                // 3秒後自動隱藏（除非是拖拽狀態）
                 setTimeout(() => {
                     if (!isDragging) {
                         debugOverlay.classList.remove('show');
@@ -468,7 +487,6 @@
             }
         }
         
-        // 🤖 Android 簡化版：移除 alert，改用座標顯示
         function androidDebug(message) {
             if (isAndroid()) {
                 const coordsEl = document.getElementById('coords');
@@ -483,11 +501,10 @@
             }
         }
 
-        // 🔥 觸控反饋函數
+        // 觸控反饋函數
         function showTouchFeedback(element, show = true) {
             if (show) {
                 element.classList.add('touch-active');
-                // 觸控震動反饋（如果支援）
                 if (navigator.vibrate) {
                     navigator.vibrate(50);
                 }
@@ -505,7 +522,7 @@
             }
         }
         
-        // 🎯 創建拖拽軌跡點
+        // 創建拖拽軌跡點
         function createDragTrail(x, y) {
             const trail = document.createElement('div');
             trail.className = 'drag-trail';
@@ -513,7 +530,6 @@
             trail.style.top = y + 'px';
             document.getElementById('mapContainer').appendChild(trail);
             
-            // 1秒後自動移除
             setTimeout(() => {
                 if (trail.parentNode) {
                     trail.parentNode.removeChild(trail);
@@ -633,7 +649,7 @@
                     changeColor(index);
                 });
 
-                // 🔥 新的觸控事件處理
+                // 觸控事件處理
                 setupTouchEvents(div, index);
 
                 container.appendChild(div);
@@ -642,7 +658,7 @@
             if (!isUpdatingFromFirebase) saveToFirebase();
         }
 
-        // 🎯 設定觸控事件
+        // 設定觸控事件
         function setupTouchEvents(element, index) {
             let touchStarted = false;
             let isDraggingThis = false;
@@ -661,16 +677,16 @@
                 // 立即顯示觸控反饋
                 showTouchFeedback(element, true);
                 
-                // 編輯模式：直接開始拖拽（無需長按和權限驗證）
+                // 編輯模式：直接開始拖拽
                 updateDebugInfo('✏️ 編輯模式，立即拖拽');
                 setTimeout(() => {
                     startDragMode(e, index);
                     isDraggingThis = true;
-                }, 50); // 給一點延遲確保事件正確處理
+                }, 50);
                 
             }, { passive: false });
             
-            // 🔥 觸控移動事件 - 統一處理
+            // 觸控移動事件
             element.addEventListener('touchmove', (e) => {
                 if (!isDraggingThis || !isDragging) {
                     return;
@@ -712,7 +728,7 @@
                 
             }, { passive: false });
             
-            // 🔥 修正：手指放開就結束拖拽
+            // 手指放開就結束拖拽
             element.addEventListener('touchend', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -732,7 +748,7 @@
                 // 移除觸控反饋
                 showTouchFeedback(element, false);
                 
-                // 🔥 修正：放開手指就結束拖拽
+                // 放開手指就結束拖拽
                 if (isDragging) {
                     updateDebugInfo('🎯 手指放開，結束拖拽');
                     endDrag();
@@ -764,7 +780,7 @@
             });
         }
         
-        // 🎯 開始拖拽模式
+        // 開始拖拽模式
         function startDragMode(e, index) {
             updateDebugInfo('🎯 startDragMode 被呼叫');
             
@@ -786,7 +802,7 @@
             const element = document.querySelector(`[data-index="${index}"]`);
             const rect = element.getBoundingClientRect();
             
-            // 🔥 修正：計算相對於容器的偏移
+            // 計算相對於容器的偏移
             const container = document.getElementById('mapContainer');
             const containerRect = container.getBoundingClientRect();
             
@@ -807,7 +823,7 @@
             e.stopPropagation();
         }
         
-        // 🎯 結束拖拽
+        // 結束拖拽
         function endDrag() {
             if (!isDragging) return;
             
@@ -831,7 +847,7 @@
             }
         }
 
-        // 🤖 Android 專用：全域觸控結束處理
+        // Android 專用：全域觸控結束處理
         document.addEventListener('touchend', (e) => {
             if (!isAndroid()) return;
             
@@ -875,7 +891,7 @@
                     
                     renderPeople();
                     
-                    // 🔥 創建拖拽軌跡
+                    // 創建拖拽軌跡
                     createDragTrail(newPixelX, newPixelY);
                 }
             };
