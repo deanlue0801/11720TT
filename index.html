@@ -278,6 +278,8 @@
             background: rgba(44, 62, 80, 0.8);
             padding: 5px;
             border-radius: 3px;
+            max-width: 200px;
+            word-wrap: break-word;
         }
         
         .delete-btn {
@@ -482,6 +484,14 @@
         // 🔐 新增：編輯密碼保護
         let isAuthenticated = false;
         const EDIT_PASSWORD = "bearDen2025"; // 你可以修改這個密碼
+        
+        // 🔧 手機除錯顯示
+        function updateDebugInfo(message) {
+            const debugEl = document.querySelector('.grid-info');
+            if (debugEl) {
+                debugEl.innerHTML = message;
+            }
+        }
 
         // 🔐 密碼驗證函數
         function checkEditPassword() {
@@ -689,9 +699,14 @@
 
         // 🎯 設定觸控事件
         function setupTouchEvents(element, index) {
+            let touchStarted = false;
+            
             // 觸控開始
             element.addEventListener('touchstart', (e) => {
                 e.preventDefault();
+                e.stopPropagation();
+                
+                touchStarted = true;
                 currentTouchTarget = element;
                 touchStartTime = Date.now();
                 
@@ -700,16 +715,29 @@
                 
                 // 設定長按計時器
                 longPressTimer = setTimeout(() => {
-                    startDragMode(e, index);
+                    if (touchStarted) {
+                        startDragMode(e, index);
+                    }
                 }, 200); // 200ms 長按觸發拖拽
                 
+            }, { passive: false });
+            
+            // 觸控移動 - 防止意外結束
+            element.addEventListener('touchmove', (e) => {
+                if (touchStarted && longPressTimer) {
+                    // 如果還在長按計時中，不要取消
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
             }, { passive: false });
             
             // 短點擊處理
             element.addEventListener('touchend', (e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 
                 const touchDuration = Date.now() - touchStartTime;
+                touchStarted = false;
                 
                 // 清除長按計時器
                 if (longPressTimer) {
@@ -720,12 +748,23 @@
                 // 移除觸控反饋
                 showTouchFeedback(element, false);
                 
-                // 結束拖拽
-                if (isDragging) {
-                    endDrag();
+                // 只有在非拖拽狀態下才結束拖拽
+                if (isDragging && touchDuration > 200) {
+                    // 拖拽中的 touchend，不要立即結束
+                    return;
                 }
                 
                 currentTouchTarget = null;
+            });
+            
+            // 觸控取消處理
+            element.addEventListener('touchcancel', (e) => {
+                touchStarted = false;
+                if (longPressTimer) {
+                    clearTimeout(longPressTimer);
+                    longPressTimer = null;
+                }
+                showTouchFeedback(element, false);
             });
             
             // 滑鼠事件（桌面）
@@ -736,8 +775,16 @@
         
         // 🎯 開始拖拽模式
         function startDragMode(e, index) {
+            updateDebugInfo('🔐 檢查編輯權限...');
+            
             // 🔐 檢查編輯權限
-            if (!checkEditPassword()) return;
+            if (!checkEditPassword()) {
+                showDragHint(false);
+                updateDebugInfo('❌ 權限被拒絕');
+                return;
+            }
+            
+            updateDebugInfo('✅ 權限通過，開始拖拽...');
             
             if (isDragging) return;
             if (e.target.classList.contains('delete-btn')) return;
@@ -751,6 +798,10 @@
             const element = document.querySelector(`[data-index="${index}"]`);
             const rect = element.getBoundingClientRect();
             
+            // 🔥 修正：計算相對於容器的偏移
+            const container = document.getElementById('mapContainer');
+            const containerRect = container.getBoundingClientRect();
+            
             dragOffset.x = clientX - (rect.left + rect.width/2);
             dragOffset.y = clientY - (rect.top + rect.height/2);
             
@@ -762,6 +813,8 @@
                 navigator.vibrate([100, 50, 100]);
             }
             
+            updateDebugInfo(`🎯 拖拽開始: ${people[index].name}<br/>狀態: ${isDragging ? '拖拽中' : '未拖拽'}`);
+            
             e.preventDefault();
             e.stopPropagation();
         }
@@ -769,6 +822,8 @@
         // 🎯 結束拖拽
         function endDrag() {
             if (!isDragging) return;
+            
+            updateDebugInfo('🎯 結束拖拽');
             
             isDragging = false;
             showDragHint(false);
@@ -778,6 +833,13 @@
             });
             
             dragPerson = null;
+            
+            // 3秒後恢復正常顯示
+            setTimeout(() => {
+                if (!isDragging) {
+                    updateDebugInfo('✅ 即時協作已啟用<br/>🔧 除錯模式');
+                }
+            }, 3000);
         }
 
         // 縮放功能
@@ -893,6 +955,9 @@
         }
 
         window.clearAll = function() {
+            // 🔐 先檢查編輯權限
+            if (!checkEditPassword()) return;
+            
             // 🔐 密碼保護 + 三重確認保護機制
             const CLEAR_PASSWORD = "SKY1147dean"; // 你可以修改這個密碼
             const itemCount = people.length;
@@ -933,7 +998,9 @@
         document.addEventListener('touchmove', (e) => {
             if (!isDragging || dragPerson === null) return;
             
+            // 🔥 重要：防止頁面滾動和其他觸控行為
             e.preventDefault();
+            e.stopPropagation();
             
             const container = document.getElementById('mapContainer');
             const rect = container.getBoundingClientRect();
@@ -941,22 +1008,41 @@
             const clientX = e.touches[0].clientX;
             const clientY = e.touches[0].clientY;
             
-            const newPixelX = clientX - rect.left - dragOffset.x;
-            const newPixelY = clientY - rect.top - dragOffset.y;
-            const newGrid = pixelToGrid(newPixelX, newPixelY);
+            // 🔥 修正：正確計算新位置
+            const newCenterX = clientX - dragOffset.x;
+            const newCenterY = clientY - dragOffset.y;
             
+            // 轉換為容器內的座標
+            const containerX = newCenterX - rect.left;
+            const containerY = newCenterY - rect.top;
+            
+            const newGrid = pixelToGrid(containerX, containerY);
+            
+            // 🔥 直接更新位置
             people[dragPerson].gridX = newGrid.gridX;
             people[dragPerson].gridY = newGrid.gridY;
+            
+            updateDebugInfo(`🎯 拖拽移動中<br/>格線: (${newGrid.gridX}, ${newGrid.gridY})<br/>狀態: ${isDragging ? '拖拽中' : '未拖拽'}`);
             
             renderPeople();
             
             // 🔥 創建拖拽軌跡
-            createDragTrail(newPixelX, newPixelY);
+            createDragTrail(containerX, containerY);
             
             // 更新座標顯示
             document.getElementById('coords').textContent = 
                 `🎯 拖拽中: 格線(${newGrid.gridX}, ${newGrid.gridY})`;
                 
+        }, { passive: false });
+        
+        // 🎯 全域觸控結束處理
+        document.addEventListener('touchend', (e) => {
+            // 只有在真正拖拽中才結束
+            if (isDragging && dragPerson !== null) {
+                setTimeout(() => {
+                    endDrag();
+                }, 50); // 稍微延遲，避免過早結束
+            }
         }, { passive: false });
 
         // 事件監聽器 - 支援觸控
@@ -1006,7 +1092,7 @@
             document.addEventListener('mouseup', handleEnd);
             
             // 觸控事件
-            document.addEventListener('touchend', handleEnd);
+            // 移除原本的 touchend 監聽，避免衝突
         }
 
         // 鍵盤快捷鍵
