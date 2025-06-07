@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>熊窩地圖 - 即時協作版</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #2c3e50;
+            font-family: 'Courier New', monospace;
+            color: #ecf0f1;
+            overflow: auto;
+            /* 🔥 禁止手機原生縮放 */
+            touch-action: pan-x pan-y;
+            user-select: none;
+        }
+        
+        .controls {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            margin: 0;
+            padding: 8px;
+            background: rgba(52, 73, 94, 0.95);
+            backdrop-filter: blur(5px);
+            border-radius: 0;
+            display: flex;
+            gap: 5px;
+            align-items: center;
+            flex-wrap: wrap;
+            border-bottom: 1px solid rgba(127, 140, 141, 0.3);
+            font-size: 12px;
+        }
+        
+        @media (max-width: 768px) {
+            .controls {
+                padding: 5px;
+                gap: 3px;
+                font-size: 11px;
+            }
+            
+            .controls input, .controls select {
+                font-size: 12px;
+                padding: 4px;
+                min-width: 60px;
+                /* 🔥 增加觸控區域 */
+                min-height: 44px;
+            }
+            
+            .controls button {
+                font-size: 11px;
+                padding: 4px 6px;
+                /* 🔥 確保按鈕夠大 */
+                min-height: 44px;
+                min-width: 44px;
+            }
+            
+            .info {
+                font-size: 10px;
+                margin-left: 5px;
+            }
+        }
+        
+        .controls input, .controls select {
+            padding: 5px;
+            background: #2c3e50;
+            border: 1px solid #7f8c8d;
+            color: #ecf0f1;
+            border-radius: 3px;
+        }
+        
+        .controls button {
+            padding: 5px 10px;
+            background: #27ae60;
+            border: none;
+            color: white;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .controls button:hover {
+            background: #2ecc71;
+        }
+        
+        .controls button:active {
+            transform: scale(0.95);
+            background: #229954;
+        }
+        
+        .controls button.debug {
+            background: #f39c12;
+        }
+        
+        .controls button.debug:hover {
+            background: #e67e22;
+        }
+        
+        .status {
+            background: #e74c3c;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+        }
+        
+        .status.connected {
+            background: #27ae60;
+        }
+        
+        .info {
+            margin-left: auto;
+            font-size: 12px;
+            color: #95a5a6;
+        }
+        
+        .map-container {
+            position: relative;
+            width: 10000px;
+            height: 8000px;
+            margin: 0;
+            background: #34495e;
+            border: none;
+            cursor: crosshair;
+            overflow: visible;
+            transition: transform 0.3s ease;
+        }
+        
+        .grid-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .person {
+            position: absolute;
+            color: #ffffff;
+            font-size: 10px;
+            white-space: nowrap;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+            cursor: move;
+            border-radius: 3px;
+            background: rgba(46, 204, 113, 0.2);
+            border: 2px solid #2ecc71;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-weight: bold;
+            z-index: 10;
+            transform: rotate(45deg);
+            box-sizing: border-box;
+            transition: all 0.2s ease;
+            
+            /* 🔥 手機觸控優化 */
+            touch-action: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .person .text {
+            transform: rotate(-45deg);
+        }
+        
+        .person:hover {
+            background: rgba(52, 152, 219, 0.3);
+            border-color: #3498db;
+        }
+        
+        /* 🎯 觸控狀態優化 */
+        .person:active,
+        .person.touch-active {
+            background: rgba(52, 152, 219, 0.5) !important;
+            border-color: #3498db !important;
+            transform: rotate(45deg) scale(1.1);
+            box-shadow: 0 0 20px rgba(52, 152, 219, 0.6);
+            z-index: 1000;
+            cursor: grabbing;
+        }
+        
+        .person.dragging {
+            background: rgba(231, 76, 60, 0.5) !important;
+            border-color: #e74c3c !important;
+            z-index: 1001;
+            transform: rotate(45deg) scale(1.15);
+            box-shadow: 0 0 25px rgba(231, 76, 60, 0.8);
+            cursor: grabbing;
+            
+            /* 🔥 拖拽時的脈衝動畫 */
+            animation: dragPulse 0.8s ease-in-out infinite alternate;
+        }
+        
+        @keyframes dragPulse {
+            from { 
+                box-shadow: 0 0 25px rgba(231, 76, 60, 0.8);
+            }
+            to { 
+                box-shadow: 0 0 35px rgba(231, 76, 60, 1);
+            }
+        }
+        
+        .person.green {
+            background: rgba(46, 204, 113, 0.2);
+            border-color: #2ecc71;
+            color: #ffffff;
+        }
+        
+        .person.blue {
+            background: rgba(52, 152, 219, 0.2);
+            border-color: #3498db;
+            color: #ffffff;
+        }
+        
+        .person.purple {
+            background: rgba(155, 89, 182, 0.2);
+            border-color: #9b59b6;
+            color: #ffffff;
+        }
+        
+        .person.orange {
+            background: rgba(230, 126, 34, 0.2);
+            border-color: #e67e22;
+            color: #ffffff;
+        }
+        
+        .person.pink {
+            background: rgba(233, 30, 99, 0.2);
+            border-color: #e91e63;
+            color: #ffffff;
+        }
+        
+        .person.yellow {
+            background: rgba(241, 196, 15, 0.2);
+            border-color: #f1c40f;
+            color: #ffffff;
+        }
+        
+        .person.cyan {
+            background: rgba(26, 188, 156, 0.2);
+            border-color: #1abc9c;
+            color: #ffffff;
+        }
+        
+        .person.red {
+            background: rgba(231, 76, 60, 0.2);
+            border-color: #e74c3c;
+            color: #ffffff;
+        }
+        
+        .coords {
+            position: fixed;
+            bottom: 5px;
+            left: 5px;
+            font-size: 10px;
+            color: #7f8c8d;
+            pointer-events: none;
+            z-index: 5;
+            background: rgba(44, 62, 80, 0.8);
+            padding: 5px;
+            border-radius: 3px;
+        }
+        
+        .grid-info {
+            position: fixed;
+            top: 60px;
+            left: 5px;
+            font-size: 10px;
+            color: #95a5a6;
+            pointer-events: none;
+            z-index: 5;
+            background: rgba(44, 62, 80, 0.8);
+            padding: 5px;
+            border-radius: 3px;
+        }
+        
+        .delete-btn {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 16px;
+            height: 16px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 10px;
+            cursor: pointer;
+            display: none;
+            z-index: 15;
+        }
+        
+        .person:hover .delete-btn,
+        .person:active .delete-btn,
+        .person.touch-active .delete-btn {
+            display: block;
+        }
+        
+        /* 🎯 觸控提示 */
+        .touch-hint {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(52, 73, 94, 0.95);
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            z-index: 2000;
+            display: none;
+            font-size: 14px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+        }
+        
+        .touch-hint.show {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+        
+        /* 🔥 手機用戶專用提示 */
+        .mobile-tips {
+            position: fixed;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(52, 73, 94, 0.9);
+            color: #ecf0f1;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            z-index: 100;
+            pointer-events: none;
+            opacity: 0.8;
+        }
+        
+        @media (min-width: 769px) {
+            .mobile-tips {
+                display: none;
+            }
+        }
+        
+        /* 🎯 拖拽提示線 */
+        .drag-trail {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(231, 76, 60, 0.6);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 999;
+            animation: trailFade 1s ease-out forwards;
+        }
+        
+        @keyframes trailFade {
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0.5); }
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <input type="text" id="newItemName" placeholder="輸入名稱" />
+        <select id="itemType">
+            <option value="person">成員 (2×2=4格)</option>
+            <option value="small">小建築 (1×1=1格)</option>
+            <option value="center">中心建築 (3×3=9格)</option>
+            <option value="large">大建築 (4×4=16格)</option>
+        </select>
+        <select id="itemColor">
+            <option value="green">綠色</option>
+            <option value="blue">藍色</option>
+            <option value="purple">紫色</option>
+            <option value="orange">橘色</option>
+            <option value="pink">粉色</option>
+            <option value="yellow">黃色</option>
+            <option value="cyan">青色</option>
+            <option value="red">紅色</option>
+        </select>
+        <button onclick="addItem()">新增項目</button>
+        <button onclick="exportLayout()">匯出座位表</button>
+        <button onclick="clearAll()" style="background: #c0392b;">⚠️ 清空所有</button>
+        <button onclick="zoomIn()" class="debug">放大 (+)</button>
+        <button onclick="zoomOut()" class="debug">縮小 (-)</button>
+        <button onclick="resetZoom()" class="debug">重置縮放</button>
+        <div class="status" id="connectionStatus">未連接</div>
+        <div class="info">
+            即時協作版 | 右鍵改變顏色 | 縮放: <span id="zoomLevel">100%</span> | 目前項目: <span id="peopleCount">0</span>
+        </div>
+    </div>
+    
+    <div class="map-container" id="mapContainer">
+        <div class="grid-overlay" id="gridOverlay"></div>
+        <div class="coords" id="coords">座標: 0, 0</div>
+        <div class="grid-info">⚠️ 載入中...</div>
+    </div>
+    
+    <!-- 🔥 手機觸控提示 -->
+    <div class="mobile-tips">
+        💡 長按拖拽項目 | 右鍵改色 | Ctrl+滾輪縮放
+    </div>
+    
+    <!-- 🎯 觸控提示彈窗 -->
+    <div class="touch-hint" id="touchHint">
+        <div>🎯 正在拖拽</div>
+        <div style="font-size: 12px; margin-top: 5px;">移動到目標位置後放開</div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getDatabase, ref, set, onValue, push, remove } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+        // 🔥 你的 Firebase 配置 (正確的 Database URL)
+        const firebaseConfig = {
+            apiKey: "AIzaSyBHG_bYTMT9s9XkeU5s1LIanFiZDN-081w",
+            authDomain: "sky-bb549.firebaseapp.com",
+            databaseURL: "https://sky-bb549-default-rtdb.firebaseio.com/", // ✅ 正確的 URL
+            projectId: "sky-bb549",
+            storageBucket: "sky-bb549.firebasestorage.app",
+            messagingSenderId: "105237288983",
+            appId: "1:105237288983:web:5dcec35e9306d043a96452",
+            measurementId: "G-9FZNC307GC"
+        };
+
+        // Initialize Firebase
+        let app, database, isFirebaseEnabled = false;
+        
+        try {
+            app = initializeApp(firebaseConfig);
+            database = getDatabase(app);
+            isFirebaseEnabled = true;
+            updateConnectionStatus('已連接', true);
+        } catch (error) {
+            console.warn('Firebase 未正確設定:', error);
+            updateConnectionStatus('需要設定 Firebase', false);
+        }
+
+        // 全域變數
+        const GRID_SIZE = 40;
+        const MAP_WIDTH = 10000;
+        const MAP_HEIGHT = 8000;
+        const GRID_ORIGIN_X = MAP_WIDTH / 2;
+        const GRID_ORIGIN_Y = MAP_HEIGHT / 2;
+        
+        // ✅ 修正：初始為空陣列，等 Firebase 載入
+        let people = [];
+        
+        // 預設資料，只在 Firebase 沒有資料時使用
+        const defaultPeople = [
+            {name: '熊窩', gridX: 0, gridY: 0, type: 'center', color: 'red'},
+            {name: '急先鋒', gridX: 0, gridY: -3, type: 'person', color: 'green'},
+            {name: 'Patato Q', gridX: 3, gridY: -1, type: 'person', color: 'blue'},
+            {name: 'Potato Sue', gridX: 3, gridY: 1, type: 'person', color: 'purple'}
+        ];
+        
+        let isDragging = false;
+        let dragPerson = null;
+        let dragOffset = {x: 0, y: 0};
+        let zoomLevel = 1.0;
+        let isUpdatingFromFirebase = false;
+        let hasLoadedFromFirebase = false; // ✅ 新增：追蹤是否已從 Firebase 載入
+        
+        // 🔥 新增觸控相關變數
+        let touchStartTime = 0;
+        let longPressTimer = null;
+        let currentTouchTarget = null;
+        
+        // 🔐 新增：編輯密碼保護
+        let isAuthenticated = false;
+        const EDIT_PASSWORD = "bearDen2025"; // 你可以修改這個密碼
+
+        // 🔐 密碼驗證函數
+        function checkEditPassword() {
+            if (isAuthenticated) return true;
+            
+            const passwordInput = prompt('🔐 請輸入編輯密碼：');
+            if (passwordInput === EDIT_PASSWORD) {
+                isAuthenticated = true;
+                alert('✅ 密碼正確，已開啟編輯權限！');
+                return true;
+            } else if (passwordInput !== null) {
+                alert('❌ 密碼錯誤，無法進行編輯操作！');
+            }
+            return false;
+        }
+        function updateConnectionStatus(status, connected) {
+            const statusEl = document.getElementById('connectionStatus');
+            statusEl.textContent = status;
+            statusEl.className = connected ? 'status connected' : 'status';
+            
+            // 更新資訊顯示
+            if (connected) {
+                document.querySelector('.grid-info').textContent = '✅ 即時協作已啟用';
+            } else {
+                document.querySelector('.grid-info').textContent = '⚠️ 需要設定 Firebase 才能使用即時協作功能';
+            }
+        }
+
+        function saveToFirebase() {
+            if (!isFirebaseEnabled || isUpdatingFromFirebase) return;
+            
+            try {
+                const layoutRef = ref(database, 'bearDenLayout');
+                set(layoutRef, {
+                    people: people,
+                    lastUpdated: Date.now()
+                });
+            } catch (error) {
+                console.warn('Firebase 儲存失敗:', error);
+            }
+        }
+
+        function setupFirebaseListener() {
+            if (!isFirebaseEnabled) return;
+            
+            const layoutRef = ref(database, 'bearDenLayout');
+            onValue(layoutRef, (snapshot) => {
+                const data = snapshot.val();
+                
+                isUpdatingFromFirebase = true;
+                
+                if (data && data.people && data.people.length > 0) {
+                    // ✅ Firebase 有資料，使用 Firebase 的資料
+                    people = data.people;
+                    hasLoadedFromFirebase = true;
+                } else if (!hasLoadedFromFirebase) {
+                    // ✅ Firebase 沒有資料且是第一次載入，使用預設資料並儲存到 Firebase
+                    people = [...defaultPeople];
+                    hasLoadedFromFirebase = true;
+                    // 將預設資料儲存到 Firebase
+                    setTimeout(() => {
+                        isUpdatingFromFirebase = false;
+                        saveToFirebase();
+                    }, 100);
+                }
+                
+                renderPeople();
+                isUpdatingFromFirebase = false;
+            });
+        }
+
+        // 🔥 觸控反饋函數
+        function showTouchFeedback(element, show = true) {
+            if (show) {
+                element.classList.add('touch-active');
+                // 觸控震動反饋（如果支援）
+                if (navigator.vibrate) {
+                    navigator.vibrate(50);
+                }
+            } else {
+                element.classList.remove('touch-active');
+            }
+        }
+        
+        function showDragHint(show = true) {
+            const hint = document.getElementById('touchHint');
+            if (show) {
+                hint.classList.add('show');
+            } else {
+                hint.classList.remove('show');
+            }
+        }
+        
+        // 🎯 創建拖拽軌跡點
+        function createDragTrail(x, y) {
+            const trail = document.createElement('div');
+            trail.className = 'drag-trail';
+            trail.style.left = x + 'px';
+            trail.style.top = y + 'px';
+            document.getElementById('mapContainer').appendChild(trail);
+            
+            // 1秒後自動移除
+            setTimeout(() => {
+                if (trail.parentNode) {
+                    trail.parentNode.removeChild(trail);
+                }
+            }, 1000);
+        }
+
+        // 座標轉換函數
+        function gridToPixel(gridX, gridY) {
+            const gridStep = 40;
+            const rotatedX = (gridX - gridY) * gridStep / 2;
+            const rotatedY = (gridX + gridY) * gridStep / 2;
+            
+            return {
+                x: GRID_ORIGIN_X + rotatedX,
+                y: GRID_ORIGIN_Y + rotatedY
+            };
+        }
+        
+        function pixelToGrid(pixelX, pixelY) {
+            const deltaX = pixelX - GRID_ORIGIN_X;
+            const deltaY = pixelY - GRID_ORIGIN_Y;
+            const gridStep = 40;
+            
+            const gridX = Math.round((deltaX + deltaY) / gridStep);
+            const gridY = Math.round((deltaY - deltaX) / gridStep);
+            
+            return {gridX, gridY};
+        }
+        
+        // 渲染函數
+        function renderPeople() {
+            const container = document.getElementById('mapContainer');
+            
+            const existingPeople = container.querySelectorAll('.person');
+            existingPeople.forEach(p => p.remove());
+            
+            document.getElementById('peopleCount').textContent = people.length;
+            
+            people.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = `person ${item.color || 'green'}`;
+                div.dataset.index = index;
+                
+                const textDiv = document.createElement('div');
+                textDiv.className = 'text';
+                textDiv.textContent = item.name;
+                div.appendChild(textDiv);
+                
+                const gridSpacing = 40;
+                let size;
+                
+                switch(item.type) {
+                    case 'small':
+                        size = gridSpacing * Math.sqrt(2);
+                        break;
+                    case 'person':
+                        size = gridSpacing * 2 * Math.sqrt(2);
+                        break;
+                    case 'center':
+                        size = gridSpacing * 3 * Math.sqrt(2);
+                        break;
+                    case 'large':
+                        size = gridSpacing * 4 * Math.sqrt(2);
+                        break;
+                    default:
+                        size = gridSpacing * 2 * Math.sqrt(2);
+                }
+                
+                const centerPos = gridToPixel(item.gridX, item.gridY);
+                
+                div.style.width = size + 'px';
+                div.style.height = size + 'px';
+                div.style.left = (centerPos.x - size/2) + 'px';
+                div.style.top = (centerPos.y - size/2) + 'px';
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.textContent = '×';
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteItem(index);
+                };
+                div.appendChild(deleteBtn);
+                
+                // 右鍵改色
+                div.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    changeColor(index);
+                });
+                
+                // 🔥 新的觸控事件處理
+                setupTouchEvents(div, index);
+                
+                container.appendChild(div);
+            });
+            
+            // 如果不是從 Firebase 更新，則儲存到 Firebase
+            if (!isUpdatingFromFirebase) {
+                saveToFirebase();
+            }
+        }
+
+        // 🎯 設定觸控事件
+        function setupTouchEvents(element, index) {
+            // 觸控開始
+            element.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                currentTouchTarget = element;
+                touchStartTime = Date.now();
+                
+                // 立即顯示觸控反饋
+                showTouchFeedback(element, true);
+                
+                // 設定長按計時器
+                longPressTimer = setTimeout(() => {
+                    startDragMode(e, index);
+                }, 200); // 200ms 長按觸發拖拽
+                
+            }, { passive: false });
+            
+            // 短點擊處理
+            element.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                
+                const touchDuration = Date.now() - touchStartTime;
+                
+                // 清除長按計時器
+                if (longPressTimer) {
+                    clearTimeout(longPressTimer);
+                    longPressTimer = null;
+                }
+                
+                // 移除觸控反饋
+                showTouchFeedback(element, false);
+                
+                // 結束拖拽
+                if (isDragging) {
+                    endDrag();
+                }
+                
+                currentTouchTarget = null;
+            });
+            
+            // 滑鼠事件（桌面）
+            element.addEventListener('mousedown', (e) => {
+                startDragMode(e, index);
+            });
+        }
+        
+        // 🎯 開始拖拽模式
+        function startDragMode(e, index) {
+            // 🔐 檢查編輯權限
+            if (!checkEditPassword()) return;
+            
+            if (isDragging) return;
+            if (e.target.classList.contains('delete-btn')) return;
+            
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            isDragging = true;
+            dragPerson = index;
+            
+            const element = document.querySelector(`[data-index="${index}"]`);
+            const rect = element.getBoundingClientRect();
+            
+            dragOffset.x = clientX - (rect.left + rect.width/2);
+            dragOffset.y = clientY - (rect.top + rect.height/2);
+            
+            element.classList.add('dragging');
+            showDragHint(true);
+            
+            // 觸控震動
+            if (navigator.vibrate) {
+                navigator.vibrate([100, 50, 100]);
+            }
+            
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        // 🎯 結束拖拽
+        function endDrag() {
+            if (!isDragging) return;
+            
+            isDragging = false;
+            showDragHint(false);
+            
+            document.querySelectorAll('.person').forEach(p => {
+                p.classList.remove('dragging');
+            });
+            
+            dragPerson = null;
+        }
+
+        // 縮放功能
+        function applyZoom() {
+            const container = document.getElementById('mapContainer');
+            const containerRect = container.getBoundingClientRect();
+            const viewportCenterX = window.innerWidth / 2;
+            const viewportCenterY = window.innerHeight / 2;
+            
+            const containerCenterX = (viewportCenterX - containerRect.left) / zoomLevel;
+            const containerCenterY = (viewportCenterY - containerRect.top) / zoomLevel;
+            
+            container.style.transformOrigin = `${containerCenterX}px ${containerCenterY}px`;
+            container.style.transform = `scale(${zoomLevel})`;
+            
+            document.getElementById('zoomLevel').textContent = Math.round(zoomLevel * 100) + '%';
+        }
+        
+        window.zoomIn = function() {
+            if (zoomLevel < 3.0) {
+                zoomLevel *= 1.2;
+                applyZoom();
+            }
+        }
+        
+        window.zoomOut = function() {
+            if (zoomLevel > 0.1) {
+                zoomLevel /= 1.2;
+                applyZoom();
+            }
+        }
+        
+        window.resetZoom = function() {
+            zoomLevel = 1.0;
+            applyZoom();
+        }
+
+        // 功能函數
+        window.addItem = function() {
+            // 🔐 檢查編輯權限
+            if (!checkEditPassword()) return;
+            
+            const nameInput = document.getElementById('newItemName');
+            const typeSelect = document.getElementById('itemType');
+            const colorSelect = document.getElementById('itemColor');
+            const name = nameInput.value.trim();
+            const type = typeSelect.value;
+            const color = colorSelect.value;
+            
+            if (name) {
+                people.push({
+                    name: name,
+                    gridX: 6,
+                    gridY: 6,
+                    type: type,
+                    color: color
+                });
+                nameInput.value = '';
+                renderPeople();
+            }
+        }
+
+        function deleteItem(index) {
+            // 🔐 檢查編輯權限
+            if (!checkEditPassword()) return;
+            
+            // 🛡️ 刪除單個項目的確認（移除熊窩保護）
+            const itemName = people[index].name;
+            const itemType = people[index].type;
+            
+            // 🔥 重要項目額外確認
+            if (itemType === 'center' || itemName === '熊窩') {
+                const extraConfirm = confirm(`⚠️ 注意！你要刪除的是重要建築 "${itemName}"！\n\n確定要刪除嗎？`);
+                if (!extraConfirm) return;
+            }
+            
+            if (confirm(`確定要刪除 "${itemName}" 嗎？`)) {
+                people.splice(index, 1);
+                renderPeople();
+            }
+        }
+
+        function changeColor(index) {
+            // 🔐 檢查編輯權限
+            if (!checkEditPassword()) return;
+            
+            const colors = ['green', 'blue', 'purple', 'orange', 'pink', 'yellow', 'cyan', 'red'];
+            const currentColor = people[index].color || 'green';
+            const currentIndex = colors.indexOf(currentColor);
+            const nextIndex = (currentIndex + 1) % colors.length;
+            
+            people[index].color = colors[nextIndex];
+            renderPeople();
+        }
+
+        window.exportLayout = function() {
+            const layout = people.map(p => {
+                const typeNames = {
+                    'small': '小建築(1×1=1格)',
+                    'person': '成員(2×2=4格)', 
+                    'center': '中心建築(3×3=9格)',
+                    'large': '大建築(4×4=16格)'
+                };
+                return `${p.name}: ${typeNames[p.type]} 格線(${p.gridX}, ${p.gridY}) 顏色:${p.color}`;
+            }).join('\n');
+            const blob = new Blob([layout], {type: 'text/plain'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '座位安排_格線座標.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        window.clearAll = function() {
+            // 🔐 密碼保護 + 三重確認保護機制
+            const CLEAR_PASSWORD = "SKY1147dean"; // 你可以修改這個密碼
+            const itemCount = people.length;
+            
+            // 第一步：密碼驗證
+            const passwordInput = prompt('🔐 請輸入管理員密碼才能清空所有項目：');
+            if (passwordInput !== CLEAR_PASSWORD) {
+                alert('❌ 密碼錯誤，操作已取消');
+                return;
+            }
+            
+            if (itemCount <= 4) {
+                if (confirm('✅ 密碼正確！\n\n確定要清空所有項目嗎？')) {
+                    people = [];
+                    renderPeople();
+                    alert('✅ 所有項目已清空');
+                }
+            } else {
+                // 項目很多時的特殊保護
+                const firstConfirm = confirm(`✅ 密碼正確！\n\n⚠️ 警告！你即將刪除 ${itemCount} 個項目！\n\n這個操作無法復原，確定要繼續嗎？`);
+                if (!firstConfirm) return;
+                
+                const secondConfirm = confirm('🚨 最後確認！\n\n真的要清空所有座位安排嗎？');
+                if (!secondConfirm) return;
+                
+                const userInput = prompt(`請輸入當前項目數量 "${itemCount}" 來最終確認清空操作：`);
+                if (userInput === itemCount.toString()) {
+                    people = [];
+                    renderPeople();
+                    alert('✅ 所有項目已清空');
+                } else {
+                    alert('❌ 數量不正確，操作已取消');
+                }
+            }
+        }
+
+        // 🎯 全域觸控移動處理
+        document.addEventListener('touchmove', (e) => {
+            if (!isDragging || dragPerson === null) return;
+            
+            e.preventDefault();
+            
+            const container = document.getElementById('mapContainer');
+            const rect = container.getBoundingClientRect();
+            
+            const clientX = e.touches[0].clientX;
+            const clientY = e.touches[0].clientY;
+            
+            const newPixelX = clientX - rect.left - dragOffset.x;
+            const newPixelY = clientY - rect.top - dragOffset.y;
+            const newGrid = pixelToGrid(newPixelX, newPixelY);
+            
+            people[dragPerson].gridX = newGrid.gridX;
+            people[dragPerson].gridY = newGrid.gridY;
+            
+            renderPeople();
+            
+            // 🔥 創建拖拽軌跡
+            createDragTrail(newPixelX, newPixelY);
+            
+            // 更新座標顯示
+            document.getElementById('coords').textContent = 
+                `🎯 拖拽中: 格線(${newGrid.gridX}, ${newGrid.gridY})`;
+                
+        }, { passive: false });
+
+        // 事件監聽器 - 支援觸控
+        function setupEventListeners() {
+            const handleMove = (e) => {
+                const container = document.getElementById('mapContainer');
+                const rect = container.getBoundingClientRect();
+                
+                // 支援觸控和滑鼠
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                
+                const pixelX = clientX - rect.left;
+                const pixelY = clientY - rect.top;
+                const grid = pixelToGrid(pixelX, pixelY);
+                
+                if (!isDragging) {
+                    document.getElementById('coords').textContent = 
+                        `座標: ${Math.round(pixelX)}, ${Math.round(pixelY)} | 格線: (${grid.gridX}, ${grid.gridY})`;
+                }
+                
+                if (isDragging && dragPerson !== null) {
+                    const newPixelX = clientX - rect.left - dragOffset.x;
+                    const newPixelY = clientY - rect.top - dragOffset.y;
+                    const newGrid = pixelToGrid(newPixelX, newPixelY);
+                    
+                    people[dragPerson].gridX = newGrid.gridX;
+                    people[dragPerson].gridY = newGrid.gridY;
+                    
+                    renderPeople();
+                    
+                    // 🔥 創建拖拽軌跡
+                    createDragTrail(newPixelX, newPixelY);
+                }
+            };
+            
+            const handleEnd = () => {
+                if (isDragging) {
+                    setTimeout(() => {
+                        endDrag();
+                    }, 10);
+                }
+            };
+            
+            // 滑鼠事件
+            document.addEventListener('mousemove', handleMove);
+            document.addEventListener('mouseup', handleEnd);
+            
+            // 觸控事件
+            document.addEventListener('touchend', handleEnd);
+        }
+
+        // 鍵盤快捷鍵
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && document.getElementById('newItemName') === document.activeElement) {
+                window.addItem();
+            }
+            else if (e.key === '=' || e.key === '+') {
+                e.preventDefault();
+                window.zoomIn();
+            }
+            else if (e.key === '-' || e.key === '_') {
+                e.preventDefault();
+                window.zoomOut();
+            }
+            else if (e.key === '0' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                window.resetZoom();
+            }
+        });
+
+        // 滑鼠滾輪縮放
+        document.getElementById('mapContainer').addEventListener('wheel', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                e.preventDefault();
+                if (e.deltaY < 0) {
+                    window.zoomIn();
+                } else {
+                    window.zoomOut();
+                }
+            }
+        });
+
+        // 初始化
+        function initialize() {
+            applyZoom();
+            
+            const centerX = MAP_WIDTH / 2 - window.innerWidth / 2;
+            const centerY = MAP_HEIGHT / 2 - window.innerHeight / 2;
+            
+            window.scrollTo(centerX, centerY);
+            
+            // ✅ 設定 Firebase 監聽器（會自動載入資料）
+            setupFirebaseListener();
+            
+            // 設定事件監聽器
+            setupEventListeners();
+        }
+
+        initialize();
+    </script>
+</body>
+</html>
