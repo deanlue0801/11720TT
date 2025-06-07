@@ -147,50 +147,90 @@
         }
         
         .person.dragging {
-            background: rgba(231, 76, 60, 0.6) !important;
+            background: rgba(231, 76, 60, 0.8) !important;
             border-color: #e74c3c !important;
+            border-width: 4px !important;
             z-index: 1001;
-            transform: rotate(45deg) scale(1.1);
-            box-shadow: 0 0 20px rgba(231, 76, 60, 0.8);
+            transform: rotate(45deg) scale(1.2);
+            box-shadow: 0 0 30px rgba(231, 76, 60, 1), 0 0 60px rgba(231, 76, 60, 0.5);
             cursor: grabbing;
-            animation: dragPulse 0.8s ease-in-out infinite alternate;
+            animation: dragPulse 0.6s ease-in-out infinite alternate;
         }
         
         @keyframes dragPulse {
             from { 
-                box-shadow: 0 0 20px rgba(231, 76, 60, 0.8);
+                box-shadow: 0 0 30px rgba(231, 76, 60, 1), 0 0 60px rgba(231, 76, 60, 0.5);
+                transform: rotate(45deg) scale(1.2);
             }
             to { 
-                box-shadow: 0 0 30px rgba(231, 76, 60, 1);
+                box-shadow: 0 0 40px rgba(231, 76, 60, 1), 0 0 80px rgba(231, 76, 60, 0.7);
+                transform: rotate(45deg) scale(1.25);
             }
         }
         
-        /* 拖拽提示 */
+        /* 拖拽軌跡 */
+        .drag-trail {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: radial-gradient(circle, rgba(231, 76, 60, 1) 0%, rgba(231, 76, 60, 0) 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 999;
+            animation: trailFade 1.5s ease-out forwards;
+        }
+        
+        @keyframes trailFade {
+            0% { 
+                opacity: 1; 
+                transform: scale(1);
+                background: radial-gradient(circle, rgba(231, 76, 60, 1) 0%, rgba(231, 76, 60, 0.8) 70%);
+            }
+            50% {
+                opacity: 0.7;
+                transform: scale(1.5);
+            }
+            100% { 
+                opacity: 0; 
+                transform: scale(2);
+                background: radial-gradient(circle, rgba(231, 76, 60, 0.3) 0%, rgba(231, 76, 60, 0) 70%);
+            }
+        }
+        
+        /* 拖拽提示升級 */
         .drag-hint {
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(52, 73, 94, 0.95);
-            color: #ecf0f1;
-            padding: 20px;
-            border-radius: 8px;
+            background: linear-gradient(45deg, rgba(231, 76, 60, 0.95), rgba(192, 57, 43, 0.95));
+            color: #ffffff;
+            padding: 25px 35px;
+            border-radius: 15px;
             text-align: center;
             z-index: 2000;
             display: none;
-            font-size: 14px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-            backdrop-filter: blur(5px);
+            font-size: 16px;
+            font-weight: bold;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 20px rgba(231, 76, 60, 0.3);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.2);
         }
         
         .drag-hint.show {
             display: block;
-            animation: fadeIn 0.3s ease;
+            animation: hintPulse 0.5s ease infinite alternate;
         }
         
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
-            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        @keyframes hintPulse {
+            from { 
+                transform: translate(-50%, -50%) scale(1);
+                box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 20px rgba(231, 76, 60, 0.3);
+            }
+            to { 
+                transform: translate(-50%, -50%) scale(1.05);
+                box-shadow: 0 12px 40px rgba(0,0,0,0.6), 0 0 30px rgba(231, 76, 60, 0.5);
+            }
         }
         
         /* 顏色主題 */
@@ -305,10 +345,10 @@
     
     <div class="map-container" id="mapContainer"></div>
     
-    <!-- 拖拽提示 -->
+    <!-- 拖拽提示升級版 -->
     <div class="drag-hint" id="dragHint">
         <div>🎯 正在拖拽</div>
-        <div style="font-size: 12px; margin-top: 5px;">移動到目標位置後放開</div>
+        <div style="font-size: 14px; margin-top: 8px; opacity: 0.9;">移動到目標位置後放開</div>
     </div>
     
     <div class="coords" id="coords">座標: 0, 0</div>
@@ -368,6 +408,7 @@
         let dragPerson = null;
         let dragOffset = {x: 0, y: 0};
         let isUpdatingFromFirebase = false;
+        let trailTimer = null; // 🔥 軌跡控制器
 
         // 預設資料
         const defaultPeople = [
@@ -563,11 +604,30 @@
             people[dragPerson].gridX = newGrid.gridX;
             people[dragPerson].gridY = newGrid.gridY;
 
+            // 🔥 創建炫酷拖拽軌跡
+            createDragTrail(newPixelX, newPixelY);
+
             renderPeople();
 
             // 更新座標顯示
             document.getElementById('coords').textContent = 
                 `🎯 拖拽中: 格線(${newGrid.gridX}, ${newGrid.gridY})`;
+        }
+        
+        // 🔥 創建拖拽軌跡特效
+        function createDragTrail(x, y) {
+            const trail = document.createElement('div');
+            trail.className = 'drag-trail';
+            trail.style.left = x + 'px';
+            trail.style.top = y + 'px';
+            document.getElementById('mapContainer').appendChild(trail);
+            
+            // 1.5秒後自動移除
+            setTimeout(() => {
+                if (trail.parentNode) {
+                    trail.parentNode.removeChild(trail);
+                }
+            }, 1500);
         }
 
         function endDrag() {
