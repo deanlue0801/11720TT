@@ -267,19 +267,25 @@
             border-radius: 3px;
         }
         
-        .grid-info {
+        .debug-overlay {
             position: fixed;
-            top: 60px;
-            left: 5px;
-            font-size: 10px;
-            color: #95a5a6;
-            pointer-events: none;
-            z-index: 5;
-            background: rgba(44, 62, 80, 0.8);
-            padding: 5px;
-            border-radius: 3px;
-            max-width: 200px;
-            word-wrap: break-word;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(231, 76, 60, 0.9);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            z-index: 9999;
+            text-align: center;
+            min-width: 200px;
+            display: none;
+        }
+        
+        .debug-overlay.show {
+            display: block;
         }
         
         .delete-btn {
@@ -409,6 +415,9 @@
         <div class="grid-info">⚠️ 載入中...</div>
     </div>
     
+    <!-- 🔧 iOS 專用除錯顯示 -->
+    <div class="debug-overlay" id="debugOverlay">除錯資訊</div>
+    
     <!-- 🔥 手機觸控提示 -->
     <div class="mobile-tips">
         💡 長按拖拽項目 | 右鍵改色 | Ctrl+滾輪縮放
@@ -485,11 +494,26 @@
         let isAuthenticated = false;
         const EDIT_PASSWORD = "bearDen2025"; // 你可以修改這個密碼
         
-        // 🔧 手機除錯顯示
+        // 🔧 iOS 專用除錯顯示
         function updateDebugInfo(message) {
             const debugEl = document.querySelector('.grid-info');
+            const debugOverlay = document.getElementById('debugOverlay');
+            
             if (debugEl) {
                 debugEl.innerHTML = message;
+            }
+            
+            // iOS 專用：中央顯示除錯資訊
+            if (debugOverlay) {
+                debugOverlay.innerHTML = message;
+                debugOverlay.classList.add('show');
+                
+                // 3秒後自動隱藏（除非是拖拽狀態）
+                setTimeout(() => {
+                    if (!isDragging) {
+                        debugOverlay.classList.remove('show');
+                    }
+                }, 3000);
             }
         }
 
@@ -857,12 +881,13 @@
             
             dragPerson = null;
             
-            // 3秒後恢復正常顯示
-            setTimeout(() => {
-                if (!isDragging) {
-                    updateDebugInfo('✅ 即時協作已啟用<br/>🔧 除錯模式');
-                }
-            }, 3000);
+            // 隱藏除錯資訊
+            const debugOverlay = document.getElementById('debugOverlay');
+            if (debugOverlay) {
+                setTimeout(() => {
+                    debugOverlay.classList.remove('show');
+                }, 2000);
+            }
         }
 
         // 縮放功能
