@@ -661,101 +661,55 @@
                 // 立即顯示觸控反饋
                 showTouchFeedback(element, true);
                 
-                // 編輯模式：直接開始拖拽（無需長按）
+                // 編輯模式：直接開始拖拽（無需長按和權限驗證）
                 updateDebugInfo('✏️ 編輯模式，立即拖拽');
-                startDragMode(e, index);
-                isDraggingThis = true;
+                setTimeout(() => {
+                    startDragMode(e, index);
+                    isDraggingThis = true;
+                }, 50); // 給一點延遲確保事件正確處理
                 
             }, { passive: false });
             
-            // 🔥 修正：iOS 和 Android 分別處理移動事件
+            // 🔥 觸控移動事件 - 統一處理
             element.addEventListener('touchmove', (e) => {
-                if (isIOS()) {
-                    // 🍎 iOS: 在元素上處理移動
-                    if (!isDraggingThis || !isDragging) {
-                        return;
-                    }
-                    
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    updateDebugInfo('🍎 iOS 元素觸控移動');
-                    
-                    const container = document.getElementById('mapContainer');
-                    const rect = container.getBoundingClientRect();
-                    
-                    const clientX = e.touches[0].clientX;
-                    const clientY = e.touches[0].clientY;
-                    
-                    // 計算新位置
-                    const newCenterX = clientX - dragOffset.x;
-                    const newCenterY = clientY - dragOffset.y;
-                    
-                    // 轉換為容器內的座標
-                    const containerX = newCenterX - rect.left;
-                    const containerY = newCenterY - rect.top;
-                    
-                    const newGrid = pixelToGrid(containerX, containerY);
-                    
-                    // 更新位置
-                    people[dragPerson].gridX = newGrid.gridX;
-                    people[dragPerson].gridY = newGrid.gridY;
-                    
-                    updateDebugInfo(`🍎 iOS 拖拽移動<br/>格線: (${newGrid.gridX}, ${newGrid.gridY})`);
-                    
-                    renderPeople();
-                    
-                    // 創建拖拽軌跡
-                    createDragTrail(containerX, containerY);
-                    
-                    // 更新座標顯示
-                    document.getElementById('coords').textContent = 
-                        `🎯 拖拽中: 格線(${newGrid.gridX}, ${newGrid.gridY})`;
-                } else if (isAndroid()) {
-                    // 🤖 Android: 也在元素上處理移動
-                    if (!isDraggingThis || !isDragging) {
-                        return;
-                    }
-                    
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    const container = document.getElementById('mapContainer');
-                    const rect = container.getBoundingClientRect();
-                    
-                    const clientX = e.touches[0].clientX;
-                    const clientY = e.touches[0].clientY;
-                    
-                    // 計算新位置
-                    const newCenterX = clientX - dragOffset.x;
-                    const newCenterY = clientY - dragOffset.y;
-                    
-                    // 轉換為容器內的座標
-                    const containerX = newCenterX - rect.left;
-                    const containerY = newCenterY - rect.top;
-                    
-                    const newGrid = pixelToGrid(containerX, containerY);
-                    
-                    // 🔥 Android：改回用 renderPeople()，但延遲更新除錯資訊
-                    people[dragPerson].gridX = newGrid.gridX;
-                    people[dragPerson].gridY = newGrid.gridY;
-                    
-                    renderPeople();
-                    
-                    // 延遲顯示除錯資訊，避免干擾渲染
-                    setTimeout(() => {
-                        androidDebug(`拖拽中: (${newGrid.gridX}, ${newGrid.gridY})`);
-                    }, 10);
-                    
-                    // 創建拖拽軌跡
-                    createDragTrail(containerX, containerY);
-                } else {
-                    // 🖥️ 桌面或其他：防止在長按期間移動
-                    if (touchStarted && longPressTimer) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                    }
+                if (!isDraggingThis || !isDragging) {
+                    return;
                 }
+                
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const container = document.getElementById('mapContainer');
+                const rect = container.getBoundingClientRect();
+                
+                const clientX = e.touches[0].clientX;
+                const clientY = e.touches[0].clientY;
+                
+                // 計算新位置
+                const newCenterX = clientX - dragOffset.x;
+                const newCenterY = clientY - dragOffset.y;
+                
+                // 轉換為容器內的座標
+                const containerX = newCenterX - rect.left;
+                const containerY = newCenterY - rect.top;
+                
+                const newGrid = pixelToGrid(containerX, containerY);
+                
+                // 更新位置
+                people[dragPerson].gridX = newGrid.gridX;
+                people[dragPerson].gridY = newGrid.gridY;
+                
+                renderPeople();
+                
+                // 創建拖拽軌跡
+                createDragTrail(containerX, containerY);
+                
+                // 更新座標顯示
+                document.getElementById('coords').textContent = 
+                    `🎯 拖拽中: 格線(${newGrid.gridX}, ${newGrid.gridY})`;
+                    
+                updateDebugInfo(`拖拽移動: (${newGrid.gridX}, ${newGrid.gridY})`);
+                
             }, { passive: false });
             
             // 🔥 修正：手指放開就結束拖拽
