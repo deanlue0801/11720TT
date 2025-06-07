@@ -15,7 +15,9 @@
             /* 🔥 允許手機原生縮放和拖拽 */
             touch-action: manipulation;
             user-select: none;
-        }
+        
+    touch-action: none; /* ✅ 修正 Android 拖曳 */
+}
         
         .controls {
             position: fixed;
@@ -537,9 +539,7 @@
         }
         
         // 🤖 Android 簡化版：用 alert 直接測試
-        function androidAlert(message) {
-            if (isAndroid()) {
-                alert(`🤖 ${message}`);
+        `);
             }
         }
         function checkEditPassword() {
@@ -1120,14 +1120,9 @@
             if (!isAndroid()) return;
             
             // 🤖 簡化測試：只用 alert
-            androidAlert('全域移動觸發!');
-            
             if (!isDragging || dragPerson === null) {
-                androidAlert(`狀態錯誤: ${isDragging}, ${dragPerson}`);
                 return;
             }
-            
-            androidAlert('開始處理移動');
             
             // 🔥 重要：防止頁面滾動和其他觸控行為
             e.preventDefault();
@@ -1152,8 +1147,6 @@
             // 🔥 直接更新位置
             people[dragPerson].gridX = newGrid.gridX;
             people[dragPerson].gridY = newGrid.gridY;
-            
-            androidAlert(`位置更新: (${newGrid.gridX}, ${newGrid.gridY})`);
             
             renderPeople();
             
