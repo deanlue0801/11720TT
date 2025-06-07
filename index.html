@@ -492,7 +492,7 @@
         
         // 🔐 新增：編輯密碼保護
         let isAuthenticated = false;
-        const EDIT_PASSWORD = "bear2025"; // 你可以修改這個密碼
+        const EDIT_PASSWORD = "bearDen2025"; // 你可以修改這個密碼
         
         // 🔧 Android 專用：直接在座標區域顯示除錯
         function updateDebugInfo(message) {
@@ -957,22 +957,7 @@
         function startDragMode(e, index) {
             updateDebugInfo('🎯 startDragMode 被呼叫');
             
-            // 🔐 統一檢查編輯權限（所有平台）
-            if (!isAuthenticated) {
-                const passwordInput = prompt('🔐 請輸入編輯密碼：');
-                if (passwordInput === EDIT_PASSWORD) {
-                    isAuthenticated = true;
-                    alert('✅ 密碼正確，已開啟編輯權限！');
-                } else if (passwordInput !== null) {
-                    alert('❌ 密碼錯誤，無法進行編輯操作！');
-                    updateDebugInfo('❌ 權限被拒絕');
-                    return;
-                } else {
-                    // 使用者按取消
-                    updateDebugInfo('❌ 使用者取消');
-                    return;
-                }
-            }
+            // 🔐 移除重複檢查，由呼叫方負責檢查權限
             
             if (isDragging) {
                 updateDebugInfo('❌ 已經在拖拽中');
