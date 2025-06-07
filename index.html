@@ -536,10 +536,18 @@
             return /iPad|iPhone|iPod/.test(navigator.userAgent);
         }
         
-        // 🤖 Android 簡化版：用 alert 直接測試
-        function androidAlert(message) {
+        // 🤖 Android 簡化版：移除 alert，改用座標顯示
+        function androidDebug(message) {
             if (isAndroid()) {
-                alert(`🤖 ${message}`);
+                const coordsEl = document.getElementById('coords');
+                if (coordsEl) {
+                    coordsEl.style.background = 'rgba(231, 76, 60, 0.9)';
+                    coordsEl.style.color = 'white';
+                    coordsEl.style.padding = '10px';
+                    coordsEl.style.fontSize = '14px';
+                    coordsEl.style.fontWeight = 'bold';
+                    coordsEl.innerHTML = `🤖 ${message}`;
+                }
             }
         }
         function checkEditPassword() {
@@ -860,9 +868,6 @@
                     const newGrid = pixelToGrid(containerX, containerY);
                     
                     // 🔥 Android 專用：強制更新位置
-                    const oldGridX = people[dragPerson].gridX;
-                    const oldGridY = people[dragPerson].gridY;
-                    
                     people[dragPerson].gridX = newGrid.gridX;
                     people[dragPerson].gridY = newGrid.gridY;
                     
@@ -874,21 +879,13 @@
                         
                         dragElement.style.left = (newPos.x - size/2) + 'px';
                         dragElement.style.top = (newPos.y - size/2) + 'px';
+                        
+                        // 顯示在座標區域，不用 alert
+                        androidDebug(`拖拽中: (${newGrid.gridX}, ${newGrid.gridY})`);
                     }
                     
                     // 創建拖拽軌跡
                     createDragTrail(containerX, containerY);
-                    
-                    // 更新座標顯示
-                    document.getElementById('coords').textContent = 
-                        `🎯 拖拽中: 格線(${newGrid.gridX}, ${newGrid.gridY})`;
-                    
-                    // 每移動 10 次才 alert 一次，避免太煩人
-                    if (Math.abs(newGrid.gridX - oldGridX) > 0 || Math.abs(newGrid.gridY - oldGridY) > 0) {
-                        setTimeout(() => {
-                            androidAlert(`位置: (${newGrid.gridX}, ${newGrid.gridY})`);
-                        }, 100);
-                    }
                 } else {
                     // 🖥️ 桌面或其他：防止在長按期間移動
                     if (touchStarted && longPressTimer) {
@@ -1169,53 +1166,10 @@
             }
         }
 
-        // 🎯 全域觸控移動處理 - Android 專用
-        document.addEventListener('touchmove', (e) => {
-            // 🤖 Android 需要全域處理
-            if (!isAndroid()) return;
-            
-            // 🤖 簡化測試：只用 alert
-            androidAlert('全域移動觸發!');
-            
-            if (!isDragging || dragPerson === null) {
-                androidAlert(`狀態錯誤: ${isDragging}, ${dragPerson}`);
-                return;
-            }
-            
-            androidAlert('開始處理移動');
-            
-            // 🔥 重要：防止頁面滾動和其他觸控行為
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const container = document.getElementById('mapContainer');
-            const rect = container.getBoundingClientRect();
-            
-            const clientX = e.touches[0].clientX;
-            const clientY = e.touches[0].clientY;
-            
-            // 🔥 修正：正確計算新位置
-            const newCenterX = clientX - dragOffset.x;
-            const newCenterY = clientY - dragOffset.y;
-            
-            // 轉換為容器內的座標
-            const containerX = newCenterX - rect.left;
-            const containerY = newCenterY - rect.top;
-            
-            const newGrid = pixelToGrid(containerX, containerY);
-            
-            // 🔥 直接更新位置
-            people[dragPerson].gridX = newGrid.gridX;
-            people[dragPerson].gridY = newGrid.gridY;
-            
-            androidAlert(`位置更新: (${newGrid.gridX}, ${newGrid.gridY})`);
-            
-            renderPeople();
-            
-            // 🔥 創建拖拽軌跡
-            createDragTrail(containerX, containerY);
-                
-        }, { passive: false });
+        // 🎯 全域觸控移動處理 - Android 專用（移除）
+        // document.addEventListener('touchmove', (e) => {
+        //     // 已移除，改用元素內處理
+        // }, { passive: false });
         
         // 🤖 Android 專用：全域觸控結束處理
         document.addEventListener('touchend', (e) => {
