@@ -445,7 +445,7 @@
             const year = today.getFullYear();
             const month = String(today.getMonth() + 1).padStart(2, '0');
             const day = String(today.getDate()).padStart(2, '0');
-            const todayPassword = `bearDen${year}${month}${day}`;
+            const todayPassword = `bear${year}${month}${day}`;
             
             const password = prompt('🔐 請輸入編輯密碼：');
             if (password !== todayPassword) {
