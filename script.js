@@ -21,8 +21,8 @@ let marqueeStartPos = { x: 0, y: 0 };
 let mapContainer, peopleCountEl, coordsEl, newItemNameInput, itemTypeSelect, itemColorSelect, connectionStatusEl, multiSelectBtn, deleteSelectedBtn;
 
 // --- Constants ---
-const MAP_WIDTH = 3750;
-const MAP_HEIGHT = 3000;
+const MAP_WIDTH = 5625;
+const MAP_HEIGHT = 4500;
 const GRID_ORIGIN_X = MAP_WIDTH / 2;
 const GRID_ORIGIN_Y = MAP_HEIGHT / 2;
 
