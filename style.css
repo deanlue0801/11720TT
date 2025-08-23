@@ -1,0 +1,533 @@
+body {
+    margin: 0;
+    padding: 0;
+    background: #2c3e50;
+    font-family: 'Courier New', monospace;
+    color: #ecf0f1;
+    overflow: auto;
+    touch-action: manipulation;
+    user-select: none;
+}
+
+.header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    padding: 10px 20px;
+    background: rgba(52, 73, 94, 0.95);
+    backdrop-filter: blur(5px);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(127, 140, 141, 0.3);
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 1.3em;
+    color: #27ae60;
+}
+
+.controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.controls input, .controls select {
+    padding: 6px;
+    background: #2c3e50;
+    border: 1px solid #7f8c8d;
+    color: #ecf0f1;
+    border-radius: 3px;
+    font-size: 12px;
+}
+
+.btn {
+    padding: 6px 12px;
+    background: #27ae60;
+    border: none;
+    color: white;
+    border-radius: 3px;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 12px;
+}
+
+.btn:hover {
+    background: #2ecc71;
+}
+
+.btn.danger {
+    background: #e74c3c;
+}
+
+.btn.view {
+    background: #3498db;
+}
+
+.status {
+    background: #e74c3c;
+    padding: 4px 12px;
+    border-radius: 3px;
+    font-size: 11px;
+}
+
+.status.connected {
+    background: #27ae60;
+}
+
+.map-container {
+    position: relative;
+    width: 3750px;
+    height: 3000px;
+    margin: 0;
+    background: #34495e;
+    border: none;
+    /*cursor: crosshair;
+    overflow: visible;
+    margin-top: 80px;
+    /*transition: transform 0.3s ease;
+
+    /* 【★★★ 以下是本次新增的樣式 ★★★】 */
+    cursor: grab; /* 預設顯示為可抓取的手掌 */
+    transform-origin: 0 0; /* 將變形的基準點設為左上角 */
+}
+
+.person {
+    position: absolute;
+    color: #ffffff;
+    font-size: 11px;
+    white-space: nowrap;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+    cursor: move;
+    border-radius: 4px;
+    background: rgba(46, 204, 113, 0.3);
+    border: 3px solid #2ecc71;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-weight: bold;
+    z-index: 10;
+    transform: rotate(45deg);
+    box-sizing: border-box;
+    transition: all 0.2s ease;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.person .text {
+    transform: rotate(-45deg);
+    pointer-events: none;
+}
+
+.person:hover {
+    background: rgba(52, 152, 219, 0.4);
+    border-color: #3498db;
+}
+
+.person:active,
+.person.touch-active {
+    background: rgba(52, 152, 219, 0.5) !important;
+    border-color: #3498db !important;
+    transform: rotate(45deg) scale(1.05);
+    box-shadow: 0 0 20px rgba(52, 152, 219, 0.6);
+    z-index: 1000;
+    cursor: grabbing;
+}
+
+.person.dragging {
+    background: rgba(231, 76, 60, 0.6) !important;
+    border-color: #e74c3c !important;
+    z-index: 1001;
+    transform: rotate(45deg) scale(1.15);
+    box-shadow: 0 0 25px rgba(231, 76, 60, 0.8);
+    cursor: grabbing;
+    animation: dragPulse 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes dragPulse {
+    from { 
+        box-shadow: 0 0 25px rgba(231, 76, 60, 0.8);
+    }
+    to { 
+        box-shadow: 0 0 35px rgba(231, 76, 60, 1);
+    }
+}
+
+.person.green { background: rgba(46, 204, 113, 0.3); border-color: #2ecc71; color: #ffffff; }
+.person.blue { background: rgba(52, 152, 219, 0.3); border-color: #3498db; color: #ffffff; }
+.person.purple { background: rgba(155, 89, 182, 0.3); border-color: #9b59b6; color: #ffffff; }
+.person.orange { background: rgba(230, 126, 34, 0.3); border-color: #e67e22; color: #ffffff; }
+.person.pink { background: rgba(233, 30, 99, 0.3); border-color: #e91e63; color: #ffffff; }
+.person.yellow { background: rgba(241, 196, 15, 0.4); border-color: #f1c40f; color: #ffffff; }
+.person.cyan { background: rgba(26, 188, 156, 0.3); border-color: #1abc9c; color: #ffffff; }
+.person.red { background: rgba(231, 76, 60, 0.3); border-color: #e74c3c; color: #ffffff; }
+
+
+/* ----- Action Buttons (Lock, Rename, Delete) ----- */
+
+.lock-btn {
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    width: 20px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.7);
+    color: #2c3e50;
+    border: 1px solid rgba(0,0,0,0.2);
+    border-radius: 50%;
+    font-size: 12px;
+    cursor: pointer;
+    display: none;
+    z-index: 20;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.lock-btn:hover {
+    background: #ffffff;
+    transform: scale(1.1);
+}
+
+.rename-btn {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 20px;
+    background: #3498db;
+    color: white;
+    border-radius: 50%;
+    font-size: 12px;
+    cursor: pointer;
+    display: none;
+    z-index: 20;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.rename-btn:hover {
+    background: #2980b9;
+}
+
+.delete-btn {
+    position: absolute;
+    top: -8px;
+    right: -10px; 
+    width: 16px;
+    height: 16px;
+    background: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 10px;
+    cursor: pointer;
+    display: none;
+    z-index: 15;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Đây là quy tắc thống nhất để hiển thị tất cả các nút khi di chuột qua */
+.person:hover .lock-btn,
+.person:hover .rename-btn,
+.person:hover .delete-btn,
+.person.touch-active .delete-btn {
+    display: flex;
+}
+
+/* ----- Coords & Info ----- */
+
+.coords {
+    position: fixed;
+    bottom: 10px;
+    left: 10px;
+    font-size: 12px;
+    color: #95a5a6;
+    background: rgba(44, 62, 80, 0.8);
+    padding: 8px;
+    border-radius: 4px;
+    pointer-events: none;
+}
+
+.info {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    font-size: 12px;
+    color: #95a5a6;
+    background: rgba(44, 62, 80, 0.8);
+    padding: 8px;
+    border-radius: 4px;
+    pointer-events: none;
+}
+
+/* ----- Debug & Touch Hints ----- */
+
+.debug-overlay {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(231, 76, 60, 0.9);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: bold;
+    z-index: 9999;
+    text-align: center;
+    min-width: 200px;
+    display: none;
+}
+
+.debug-overlay.show {
+    display: block;
+}
+
+.touch-hint {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(52, 73, 94, 0.95);
+    color: #ecf0f1;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    z-index: 2000;
+    display: none;
+    font-size: 14px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    backdrop-filter: blur(5px);
+}
+
+.touch-hint.show {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+    to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+.mobile-tips {
+    position: fixed;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(52, 73, 94, 0.9);
+    color: #ecf0f1;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    z-index: 100;
+    pointer-events: none;
+    opacity: 0.8;
+}
+
+@media (min-width: 769px) {
+    .mobile-tips {
+        display: none;
+    }
+}
+
+.drag-trail {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: rgba(231, 76, 60, 0.6);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 999;
+    animation: trailFade 1s ease-out forwards;
+}
+
+@keyframes trailFade {
+    0% { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(0.5); }
+}
+
+/* ----- Item State (Locked, etc.) ----- */
+
+.person.locked {
+    cursor: not-allowed !important;
+    opacity: 0.8;
+    border-style: dashed;
+    border-color: #95a5a6;
+}
+
+.person.locked .delete-btn,
+.person.locked .rename-btn {
+    display: none !important;
+}
+
+.person.locked .lock-btn {
+    display: flex;
+    background: #f1c40f;
+}
+
+.person.locked:hover {
+    background: inherit;
+    border-color: #95a5a6;
+}
+
+@keyframes shake {
+  0%, 100% { transform: rotate(45deg) translateX(0); }
+  25% { transform: rotate(45deg) translateX(-3px); }
+  75% { transform: rotate(45deg) translateX(3px); }
+}
+
+/* ----- Alliance Flag (7x7) ----- */
+
+.alliance-flag-container {
+    border-style: dashed !important;
+    border-width: 2px !important;
+    background: rgba(0, 0, 0, 0.1) !important;
+}
+
+.alliance-flag-container::before {
+    content: '';
+    position: absolute;
+    width: calc(100% / 7);
+    height: calc(100% / 7);
+    border: 3px solid;
+    border-color: inherit;
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.15);
+    pointer-events: none;
+}
+
+/* ----- Media Queries for Mobile ----- */
+
+@media (max-width: 768px) {
+    .header {
+        padding: 12px 16px;
+        gap: 8px;
+        font-size: 12px;
+        min-height: 70px;
+    }
+    
+    .header h1 {
+        font-size: 1.2em;
+    }
+    
+    .controls input, .controls select {
+        font-size: 14px;
+        padding: 8px 10px;
+        min-width: 80px;
+        min-height: 44px;
+    }
+    
+    .btn {
+        font-size: 13px;
+        padding: 8px 12px;
+        min-height: 44px;
+        min-width: 50px;
+    }
+    
+    .status {
+        font-size: 12px;
+        padding: 8px 12px;
+        min-height: 36px;
+        display: flex;
+        align-items: center;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .header {
+        padding: 15px 20px !important;
+        gap: 10px !important;
+        min-height: 80px !important;
+        font-size: 14px !important;
+    }
+    
+    .header h1 {
+        font-size: 1.4em !important;
+        flex-shrink: 0;
+    }
+    
+    .controls {
+        gap: 10px !important;
+    }
+    
+    .controls input, .controls select {
+        font-size: 16px !important;
+        padding: 12px 14px !important;
+        min-width: 100px !important;
+        min-height: 48px !important;
+        border-radius: 6px !important;
+    }
+    
+    .btn {
+        font-size: 14px !important;
+        padding: 12px 16px !important;
+        min-height: 48px !important;
+        min-width: 60px !important;
+        border-radius: 6px !important;
+        font-weight: bold !important;
+    }
+    
+    .status {
+        font-size: 13px !important;
+        padding: 10px 14px !important;
+        min-height: 40px !important;
+        border-radius: 6px !important;
+        font-weight: bold !important;
+    }
+}
+.send-to-back {
+    z-index: 1 !important; /* 將圖層順序設為 1 (預設是 10)，讓它沉到最下面 */
+}
+
+/* (省略前面所有未變更的 CSS) */
+/* ... */
+
+/* 【★★★ 在檔案最底部，新增以下樣式 ★★★】 */
+
+/* 多選模式按鈕的啟用樣式 */
+.mode-btn.active {
+    background: #f39c12; /* 橘色高亮 */
+    color: #fff;
+}
+
+.mode-btn.active:hover {
+    background: #e67e22;
+}
+
+/* 被選中項目的樣式 */
+.person.selected {
+    box-shadow: 0 0 25px rgba(52, 152, 219, 0.9) !important;
+    border-color: #5dade2 !important;
+}
+
+/* 在多選模式下，滑鼠樣式變為點擊 */
+.multi-select-mode .person:not(.locked) {
+    cursor: pointer !important;
+}
+/* 1. 圈選功能的選取框樣式 */
+.selection-box {
+    position: absolute;
+    background: rgba(52, 152, 219, 0.2);
+    border: 1px solid #3498db;
+    z-index: 9999;
+    pointer-events: none; /* 讓選框本身不會擋住滑鼠事件 */
+}
+
+/* 2. 讓被鎖定在底層的旗幟，滑鼠移上去時能暫時浮上來 */
+.send-to-back:hover {
+    z-index: 11 !important; /* 暫時將圖層順序設為 11 (比預設的 10 高) */
+}
