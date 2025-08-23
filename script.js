@@ -105,7 +105,7 @@ function renderPeople() {
 
         if (selectedIndices.has(index)) div.classList.add('selected');
         if (item.locked) div.classList.add('locked');
-        if (item.type === 'alliance-flag' && item.locked) div.classList.add('send-to-back');
+        if ((item.type === 'alliance-flag' || item.type === 'flag') && item.locked) div.classList.add('send-to-back');
 
         const lockBtn = document.createElement('div');
         lockBtn.className = 'lock-btn';
