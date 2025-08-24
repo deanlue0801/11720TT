@@ -89,15 +89,24 @@ body {
     margin: 0;
     background: #34495e;
     border: none;
-    /*cursor: crosshair;
-    overflow: visible;
-    margin-top: 80px;
-    /*transition: transform 0.3s ease;
-
-    /* 【★★★ 以下是本次新增的樣式 ★★★】 */
-    cursor: grab; /* 預設顯示為可抓取的手掌 */
-    transform-origin: 0 0; /* 將變形的基準點設為左上角 */
+    cursor: grab;
+    transform-origin: 0 0;
 }
+
+/* 【★★★ 主要修改部分開始 ★★★】 */
+
+/* 確保地圖容器不會被過高的 header 遮擋 */
+body {
+    /* 增加一個頂部內邊距，為 header 預留空間 */
+    /* 100px 是一個初始值，可以根據最終 header 高度微調 */
+    padding-top: 100px;
+}
+
+.map-container {
+    /* 因為 body 有了 padding, map-container 的 margin-top 就可以移除 */
+    margin-top: 0;
+}
+
 
 .person {
     position: absolute;
@@ -154,10 +163,10 @@ body {
 }
 
 @keyframes dragPulse {
-    from { 
+    from {
         box-shadow: 0 0 25px rgba(231, 76, 60, 0.8);
     }
-    to { 
+    to {
         box-shadow: 0 0 35px rgba(231, 76, 60, 1);
     }
 }
@@ -224,7 +233,7 @@ body {
 .delete-btn {
     position: absolute;
     top: -8px;
-    right: -10px; 
+    right: -10px;
     width: 16px;
     height: 16px;
     background: #e74c3c;
@@ -239,7 +248,6 @@ body {
     align-items: center;
 }
 
-/* Đây là quy tắc thống nhất để hiển thị tất cả các nút khi di chuột qua */
 .person:hover .lock-btn,
 .person:hover .rename-btn,
 .person:hover .delete-btn,
@@ -421,8 +429,8 @@ body {
 .flag-container::before {
     content: '';
     position: absolute;
-    width: calc(100% * 3 / 15);   /* 中心 3/15 */
-    height: calc(100% * 3 / 15);  /* 中心 3/15 */
+    width: calc(100% * 3 / 15);
+    height: calc(100% * 3 / 15);
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -434,33 +442,49 @@ body {
 }
 
 /* ----- Media Queries for Mobile ----- */
-
+/* 【★★★ 這一段是主要修改的部分 ★★★】 */
 @media (max-width: 768px) {
-    .header {
-        padding: 12px 16px;
-        gap: 8px;
-        font-size: 12px;
-        min-height: 70px;
+    /* 增加 body 的 padding-top 來容納固定的 header */
+    body {
+        /* 這個值需要比 header 的總高度大一點 */
+        padding-top: 150px;
     }
-    
+
+    .header {
+        /* 改為垂直堆疊 */
+        flex-direction: column;
+        /* 從兩端對齊改為靠左對齊 */
+        align-items: flex-start;
+        /* 移除 min-height，讓高度自動適應內容 */
+        min-height: auto;
+        padding: 10px 15px;
+    }
+
     .header h1 {
+        /* 在標題下方增加一些間距 */
+        margin-bottom: 10px;
         font-size: 1.2em;
     }
-    
+
+    .controls {
+        /* 確保 controls 容器寬度為 100% */
+        width: 100%;
+    }
+
     .controls input, .controls select {
         font-size: 14px;
         padding: 8px 10px;
         min-width: 80px;
         min-height: 44px;
     }
-    
+
     .btn {
         font-size: 13px;
         padding: 8px 12px;
         min-height: 44px;
         min-width: 50px;
     }
-    
+
     .status {
         font-size: 12px;
         padding: 8px 12px;
@@ -470,60 +494,13 @@ body {
     }
 }
 
-@media screen and (max-width: 768px) {
-    .header {
-        padding: 15px 20px !important;
-        gap: 10px !important;
-        min-height: 80px !important;
-        font-size: 14px !important;
-    }
-    
-    .header h1 {
-        font-size: 1.4em !important;
-        flex-shrink: 0;
-    }
-    
-    .controls {
-        gap: 10px !important;
-    }
-    
-    .controls input, .controls select {
-        font-size: 16px !important;
-        padding: 12px 14px !important;
-        min-width: 100px !important;
-        min-height: 48px !important;
-        border-radius: 6px !important;
-    }
-    
-    .btn {
-        font-size: 14px !important;
-        padding: 12px 16px !important;
-        min-height: 48px !important;
-        min-width: 60px !important;
-        border-radius: 6px !important;
-        font-weight: bold !important;
-    }
-    
-    .status {
-        font-size: 13px !important;
-        padding: 10px 14px !important;
-        min-height: 40px !important;
-        border-radius: 6px !important;
-        font-weight: bold !important;
-    }
-}
+
 .send-to-back {
-    z-index: 1 !important; /* 將圖層順序設為 1 (預設是 10)，讓它沉到最下面 */
+    z-index: 1 !important;
 }
 
-/* (省略前面所有未變更的 CSS) */
-/* ... */
-
-/* 【★★★ 在檔案最底部，新增以下樣式 ★★★】 */
-
-/* 多選模式按鈕的啟用樣式 */
 .mode-btn.active {
-    background: #f39c12; /* 橘色高亮 */
+    background: #f39c12;
     color: #fff;
 }
 
@@ -531,26 +508,22 @@ body {
     background: #e67e22;
 }
 
-/* 被選中項目的樣式 */
 .person.selected {
     box-shadow: 0 0 25px rgba(52, 152, 219, 0.9) !important;
     border-color: #5dade2 !important;
 }
 
-/* 在多選模式下，滑鼠樣式變為點擊 */
 .multi-select-mode .person:not(.locked) {
     cursor: pointer !important;
 }
-/* 1. 圈選功能的選取框樣式 */
 .selection-box {
     position: absolute;
     background: rgba(52, 152, 219, 0.2);
     border: 1px solid #3498db;
     z-index: 9999;
-    pointer-events: none; /* 讓選框本身不會擋住滑鼠事件 */
+    pointer-events: none;
 }
 
-/* 2. 讓被鎖定在底層的旗幟，滑鼠移上去時能暫時浮上來 */
 .send-to-back:hover {
-    z-index: 11 !important; /* 暫時將圖層順序設為 11 (比預設的 10 高) */
+    z-index: 11 !important;
 }
