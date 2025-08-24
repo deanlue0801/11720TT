@@ -21,6 +21,10 @@ let isPanning = false;
 let panStart = { x: 0, y: 0 };
 let scale = 1.0;
 let viewPos = { x: 0, y: 0 };
+// 【★★★ 新增變數 ★★★】
+let isPinching = false;
+let initialPinchDistance = 0;
+
 
 // --- Firebase Configuration ---
 const firebaseConfig = {
@@ -106,15 +110,16 @@ function renderPeople() {
         div.style.height = `${height}px`;
         div.style.left = `${centerPos.x - width / 2}px`;
         div.style.top = `${centerPos.y - height / 2}px`;
-        
+
         mapContainer.appendChild(div);
     });
 }
 
 // --- Event Listeners ---
 function setupEventListeners() {
+    // --- 滑鼠事件 (電腦版) ---
     const handleMouseDown = (e) => {
-        if (e.button !== 0) return;
+        if (e.button !== 0 || e.touches) return; // 如果是觸控事件則忽略
         isPanning = true;
         panStart = { x: e.clientX, y: e.clientY };
         mapContainer.style.cursor = 'grabbing';
@@ -157,11 +162,79 @@ function setupEventListeners() {
         viewPos.y = e.clientY - mouseY * (scale / oldScale);
         updateMapTransform();
     };
-    
+
+    // 【★★★ 以下是本次新增/修改的觸控事件 ★★★】
+
+    // --- 觸控事件 (手機版) ---
+    const handleTouchStart = (e) => {
+        if (e.touches.length === 1) { // 單指觸控 -> 平移
+            isPanning = true;
+            panStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        } else if (e.touches.length === 2) { // 雙指觸控 -> 縮放
+            isPanning = false; // 停止平移
+            isPinching = true;
+            initialPinchDistance = getPinchDistance(e);
+        }
+    };
+
+    const handleTouchMove = (e) => {
+        e.preventDefault(); // 防止頁面滾動
+        if (isPanning && e.touches.length === 1) { // 單指移動
+            const dx = e.touches[0].clientX - panStart.x;
+            const dy = e.touches[0].clientY - panStart.y;
+            viewPos.x += dx;
+            viewPos.y += dy;
+            updateMapTransform();
+            panStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        } else if (isPinching && e.touches.length === 2) { // 雙指移動
+            const newDistance = getPinchDistance(e);
+            const oldScale = scale;
+            
+            // 根據距離變化計算縮放比例
+            scale *= newDistance / initialPinchDistance;
+            scale = Math.max(0.1, Math.min(scale, 5)); // 限制縮放範圍
+
+            // 以雙指中心點為縮放中心
+            const rect = mapContainer.getBoundingClientRect();
+            const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+            const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+            const mouseX = centerX - viewPos.x;
+            const mouseY = centerY - viewPos.y;
+            viewPos.x = centerX - mouseX * (scale / oldScale);
+            viewPos.y = centerY - mouseY * (scale / oldScale);
+            
+            updateMapTransform();
+            initialPinchDistance = newDistance; // 更新初始距離
+        }
+    };
+
+    const handleTouchEnd = (e) => {
+        if (e.touches.length < 2) {
+            isPinching = false;
+        }
+        if (e.touches.length < 1) {
+            isPanning = false;
+        }
+    };
+
+    // 計算雙指距離的輔助函數
+    function getPinchDistance(e) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    // --- 註冊事件監聽 ---
     document.addEventListener('mousedown', handleMouseDown);
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
     document.addEventListener('wheel', handleWheel, { passive: false });
+
+    // 註冊觸控事件
+    document.addEventListener('touchstart', handleTouchStart, { passive: false });
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd);
+    document.addEventListener('touchcancel', handleTouchEnd);
 }
 
 function updateMapTransform() {
@@ -174,7 +247,7 @@ function initialize() {
     const initialY = (window.innerHeight / 2) - (MAP_HEIGHT / 2) * scale;
     viewPos = { x: initialX, y: initialY };
     updateMapTransform();
-    
+
     setupFirebase();
     setupEventListeners();
 }
