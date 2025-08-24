@@ -119,16 +119,7 @@
         <span class="mobile-only">單指拖拽 | 雙指縮放</span>
     </div>
     
-    <!-- 手機端手勢提示 -->
-    <div class="mobile-gesture-hint" id="gestureHint">
-        <h3>📱 操作說明</h3>
-        <ul>
-            <li>單指拖拽：移動地圖視角</li>
-            <li>雙指捏合：縮放地圖大小</li>
-            <li>點擊項目：查看詳細資訊</li>
-        </ul>
-        <button onclick="hideGestureHint()">我知道了</button>
-    </div>
+
 
     <script type="module" src="view.js"></script>
     
@@ -137,32 +128,8 @@
         window.addEventListener('load', () => {
             setTimeout(() => {
                 document.getElementById('loadingScreen').style.display = 'none';
-                
-                // 在手機上顯示操作提示
-                if (window.innerWidth <= 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-                    setTimeout(() => {
-                        showGestureHint();
-                    }, 500);
-                }
             }, 1000);
         });
-        
-        // 顯示手勢提示
-        function showGestureHint() {
-            const hint = document.getElementById('gestureHint');
-            if (hint && !localStorage.getItem('gestureHintShown')) {
-                hint.classList.add('show');
-            }
-        }
-        
-        // 隱藏手勢提示
-        function hideGestureHint() {
-            const hint = document.getElementById('gestureHint');
-            if (hint) {
-                hint.classList.remove('show');
-                localStorage.setItem('gestureHintShown', 'true');
-            }
-        }
         
         // 防止雙擊縮放
         let lastTouchEnd = 0;
