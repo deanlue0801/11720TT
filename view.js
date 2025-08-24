@@ -22,6 +22,19 @@ let panStart = { x: 0, y: 0 };
 let scale = 1.0;
 let viewPos = { x: 0, y: 0 };
 
+// Mobile touch handling
+let lastTouchDistance = 0;
+let isZooming = false;
+let touchStartTime = 0;
+let isMobile = false;
+
+// --- Device Detection ---
+function detectMobile() {
+    isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+               window.innerWidth <= 768 ||
+               ('ontouchstart' in window);
+}
+
 // --- Firebase Configuration ---
 const firebaseConfig = {
     apiKey: "AIzaSyAi-O6LCpI36s7qm28zxt-Xk39cQVGOp78",
@@ -73,6 +86,20 @@ function pixelToGrid(pixelX, pixelY) {
     return {gridX, gridY};
 }
 
+// --- Touch Helper Functions ---
+function getTouchDistance(touches) {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
+function getTouchCenter(touches) {
+    return {
+        x: (touches[0].clientX + touches[1].clientX) / 2,
+        y: (touches[0].clientY + touches[1].clientY) / 2
+    };
+}
+
 // --- Rendering ---
 function renderPeople() {
     mapContainer.innerHTML = '';
@@ -82,7 +109,7 @@ function renderPeople() {
         const div = document.createElement('div');
         div.className = `person ${item.color || 'green'}`;
         if (item.locked) div.classList.add('locked');
-        if (item.type === 'alliance-flag' && item.locked) div.classList.add('send-to-back');
+        if ((item.type === 'alliance-flag' || item.type === 'flag') && item.locked) div.classList.add('send-to-back');
 
         const textDiv = document.createElement('div');
         textDiv.className = 'text';
@@ -96,8 +123,14 @@ function renderPeople() {
             case 'person': width = height = gridSpacing * 2 * Math.sqrt(2); break;
             case 'center': width = height = gridSpacing * 3 * Math.sqrt(2); break;
             case 'large': width = height = gridSpacing * 4 * Math.sqrt(2); break;
-            case 'flag':div.classList.add('flag-container');width = height = gridSpacing * 15 * Math.sqrt(2); break;
-            case 'alliance-flag': div.classList.add('alliance-flag-container'); width = height = gridSpacing * 7 * Math.sqrt(2); break;
+            case 'flag':
+                div.classList.add('flag-container');
+                width = height = gridSpacing * 15 * Math.sqrt(2); 
+                break;
+            case 'alliance-flag': 
+                div.classList.add('alliance-flag-container'); 
+                width = height = gridSpacing * 7 * Math.sqrt(2); 
+                break;
             default: width = height = gridSpacing * 2 * Math.sqrt(2);
         }
 
@@ -113,6 +146,14 @@ function renderPeople() {
 
 // --- Event Listeners ---
 function setupEventListeners() {
+    if (isMobile) {
+        setupTouchEventListeners();
+    } else {
+        setupMouseEventListeners();
+    }
+}
+
+function setupMouseEventListeners() {
     const handleMouseDown = (e) => {
         if (e.button !== 0) return;
         isPanning = true;
@@ -129,11 +170,7 @@ function setupEventListeners() {
             updateMapTransform();
             panStart = { x: e.clientX, y: e.clientY };
         }
-        const rect = mapContainer.getBoundingClientRect();
-        const pixelX = (e.clientX - rect.left) / scale;
-        const pixelY = (e.clientY - rect.top) / scale;
-        const grid = pixelToGrid(pixelX, pixelY);
-        coordsEl.textContent = `座標: ${Math.round(pixelX)}, ${Math.round(pixelY)} | 格線: (${grid.gridX}, ${grid.gridY})`;
+        updateCoordinates(e.clientX, e.clientY);
     };
 
     const handleMouseUp = () => {
@@ -164,20 +201,166 @@ function setupEventListeners() {
     document.addEventListener('wheel', handleWheel, { passive: false });
 }
 
+function setupTouchEventListeners() {
+    const handleTouchStart = (e) => {
+        e.preventDefault();
+        touchStartTime = Date.now();
+        
+        if (e.touches.length === 1) {
+            // Single finger - panning
+            isPanning = true;
+            panStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        } else if (e.touches.length === 2) {
+            // Two fingers - zooming
+            isPanning = false;
+            isZooming = true;
+            lastTouchDistance = getTouchDistance(e.touches);
+        }
+    };
+
+    const handleTouchMove = (e) => {
+        e.preventDefault();
+        
+        if (e.touches.length === 1 && isPanning && !isZooming) {
+            // Single finger panning
+            const dx = e.touches[0].clientX - panStart.x;
+            const dy = e.touches[0].clientY - panStart.y;
+            viewPos.x += dx;
+            viewPos.y += dy;
+            updateMapTransform();
+            panStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            
+            // Update coordinates for single touch
+            updateCoordinates(e.touches[0].clientX, e.touches[0].clientY);
+        } else if (e.touches.length === 2 && isZooming) {
+            // Two finger zooming
+            const currentDistance = getTouchDistance(e.touches);
+            const center = getTouchCenter(e.touches);
+            
+            if (lastTouchDistance > 0) {
+                const zoomRatio = currentDistance / lastTouchDistance;
+                const oldScale = scale;
+                scale *= zoomRatio;
+                scale = Math.max(0.1, Math.min(scale, 5));
+                
+                // Zoom towards the center of the two fingers
+                const centerX = center.x - viewPos.x;
+                const centerY = center.y - viewPos.y;
+                viewPos.x = center.x - centerX * (scale / oldScale);
+                viewPos.y = center.y - centerY * (scale / oldScale);
+                
+                updateMapTransform();
+            }
+            
+            lastTouchDistance = currentDistance;
+        }
+    };
+
+    const handleTouchEnd = (e) => {
+        e.preventDefault();
+        
+        if (e.touches.length === 0) {
+            // All fingers lifted
+            isPanning = false;
+            isZooming = false;
+            lastTouchDistance = 0;
+            
+            // Double tap to zoom (if it was a quick tap)
+            const touchDuration = Date.now() - touchStartTime;
+            if (touchDuration < 300 && !isPanning && !isZooming) {
+                // This was a quick tap, could implement double-tap zoom here
+            }
+        } else if (e.touches.length === 1 && isZooming) {
+            // Back to single finger after zooming
+            isZooming = false;
+            lastTouchDistance = 0;
+            isPanning = true;
+            panStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        }
+    };
+
+    // Prevent default touch behaviors
+    document.addEventListener('touchstart', handleTouchStart, { passive: false });
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd, { passive: false });
+    
+    // Prevent context menu on long press
+    document.addEventListener('contextmenu', (e) => {
+        if (isMobile) e.preventDefault();
+    });
+    
+    // Prevent zoom on double tap for better control
+    let lastTap = 0;
+    document.addEventListener('touchend', (e) => {
+        const currentTime = new Date().getTime();
+        const tapLength = currentTime - lastTap;
+        if (tapLength < 500 && tapLength > 0) {
+            e.preventDefault();
+        }
+        lastTap = currentTime;
+    });
+}
+
+function updateCoordinates(clientX, clientY) {
+    const rect = mapContainer.getBoundingClientRect();
+    const pixelX = (clientX - rect.left) / scale;
+    const pixelY = (clientY - rect.top) / scale;
+    const grid = pixelToGrid(pixelX, pixelY);
+    coordsEl.textContent = `座標: ${Math.round(pixelX)}, ${Math.round(pixelY)} | 格線: (${grid.gridX}, ${grid.gridY})`;
+}
+
 function updateMapTransform() {
     mapContainer.style.transform = `translate(${viewPos.x}px, ${viewPos.y}px) scale(${scale})`;
 }
 
 // --- App Initialization ---
 function initialize() {
+    detectMobile();
+    
+    // Better initial positioning for mobile
+    let initialScale = isMobile ? 0.3 : 1.0;
+    scale = initialScale;
+    
     const initialX = (window.innerWidth / 2) - (MAP_WIDTH / 2) * scale;
     const initialY = (window.innerHeight / 2) - (MAP_HEIGHT / 2) * scale;
     viewPos = { x: initialX, y: initialY };
+    
     updateMapTransform();
     
     setupFirebase();
     setupEventListeners();
+    
+    // Add mobile-specific optimizations
+    if (isMobile) {
+        document.body.style.overflow = 'hidden';
+        // Prevent bounce scrolling on iOS
+        document.body.style.position = 'fixed';
+        document.body.style.width = '100%';
+        document.body.style.height = '100%';
+    }
 }
+
+// Handle orientation changes on mobile
+window.addEventListener('orientationchange', () => {
+    if (isMobile) {
+        setTimeout(() => {
+            const initialX = (window.innerWidth / 2) - (MAP_WIDTH / 2) * scale;
+            const initialY = (window.innerHeight / 2) - (MAP_HEIGHT / 2) * scale;
+            viewPos = { x: initialX, y: initialY };
+            updateMapTransform();
+        }, 100);
+    }
+});
+
+// Handle window resize
+window.addEventListener('resize', () => {
+    if (isMobile) {
+        const initialX = (window.innerWidth / 2) - (MAP_WIDTH / 2) * scale;
+        const initialY = (window.innerHeight / 2) - (MAP_HEIGHT / 2) * scale;
+        viewPos = { x: initialX, y: initialY };
+        updateMapTransform();
+    }
+});
 
 // Start the application
 initialize();
