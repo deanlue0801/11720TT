@@ -554,3 +554,318 @@ body {
 .send-to-back:hover {
     z-index: 11 !important; /* 暫時將圖層順序設為 11 (比預設的 10 高) */
 }
+
+/* 將以下樣式添加到你現有的 style.css 檔案中 */
+
+/* === 手機觸控優化 === */
+
+/* 防止手機上的觸控選擇和縮放 */
+* {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
+
+/* 防止手機瀏覽器的預設縮放行為 */
+html {
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    touch-action: none;
+}
+
+body {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: none;
+}
+
+/* 地圖容器的手機優化 */
+.map-container {
+    touch-action: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    will-change: transform; /* 提升渲染效能 */
+}
+
+/* === 手機端介面調整 === */
+
+@media screen and (max-width: 768px) {
+    /* 頂部導航欄優化 */
+    .header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 10000;
+        padding: 10px 15px !important;
+        background: rgba(52, 73, 94, 0.98) !important;
+        backdrop-filter: blur(10px);
+        border-bottom: 2px solid rgba(127, 140, 141, 0.5);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        min-height: 60px;
+        max-height: 80px;
+        overflow: hidden;
+    }
+    
+    .header h1 {
+        font-size: 1.1em !important;
+        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    /* 右側控制按鈕組 */
+    .header-right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+    
+    /* 狀態指示器 */
+    .status {
+        font-size: 11px !important;
+        padding: 6px 10px !important;
+        border-radius: 15px !important;
+        min-height: auto !important;
+        white-space: nowrap;
+    }
+    
+    /* 按鈕優化 */
+    .btn {
+        font-size: 12px !important;
+        padding: 8px 12px !important;
+        border-radius: 20px !important;
+        min-height: auto !important;
+        white-space: nowrap;
+        font-weight: bold;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        transition: all 0.2s ease;
+    }
+    
+    .btn:active {
+        transform: scale(0.95);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+    
+    /* 地圖區域調整 */
+    .map-container {
+        margin-top: 0 !important; /* 移除上邊距，讓地圖填滿螢幕 */
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 1;
+    }
+    
+    /* 項目尺寸在手機上稍微放大 */
+    .person {
+        min-width: 20px;
+        min-height: 20px;
+        border-width: 2px !important;
+    }
+    
+    .person .text {
+        font-size: 10px;
+        text-shadow: 1px 1px 3px rgba(0,0,0,0.9);
+        font-weight: bold;
+    }
+    
+    /* 座標顯示優化 */
+    .coords {
+        position: fixed;
+        bottom: 10px;
+        left: 10px;
+        font-size: 11px;
+        background: rgba(44, 62, 80, 0.95) !important;
+        padding: 6px 10px;
+        border-radius: 15px;
+        max-width: calc(100vw - 20px);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        z-index: 100;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(5px);
+    }
+    
+    /* 資訊顯示優化 */
+    .info {
+        position: fixed;
+        bottom: 40px;
+        left: 10px;
+        right: 10px;
+        font-size: 11px;
+        background: rgba(44, 62, 80, 0.95) !important;
+        padding: 8px 12px;
+        border-radius: 15px;
+        text-align: center;
+        z-index: 100;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(5px);
+    }
+}
+
+/* === 極小螢幕優化 (iPhone SE 等) === */
+@media screen and (max-width: 375px) {
+    .header {
+        padding: 8px 10px !important;
+        min-height: 50px !important;
+    }
+    
+    .header h1 {
+        font-size: 1em !important;
+    }
+    
+    .btn {
+        font-size: 11px !important;
+        padding: 6px 10px !important;
+    }
+    
+    .status {
+        font-size: 10px !important;
+        padding: 4px 8px !important;
+    }
+    
+    .coords {
+        font-size: 10px;
+        padding: 4px 8px;
+    }
+    
+    .info {
+        font-size: 10px;
+        padding: 6px 10px;
+    }
+}
+
+/* === 橫屏模式優化 === */
+@media screen and (max-width: 768px) and (orientation: landscape) {
+    .header {
+        padding: 5px 10px !important;
+        min-height: 45px !important;
+    }
+    
+    .header h1 {
+        font-size: 1em !important;
+    }
+    
+    .btn {
+        padding: 5px 10px !important;
+        font-size: 11px !important;
+    }
+    
+    .status {
+        padding: 4px 8px !important;
+        font-size: 10px !important;
+    }
+    
+    .info {
+        bottom: 50px;
+    }
+}
+
+/* === 手機端手勢提示 === */
+.mobile-gesture-hint {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(52, 73, 94, 0.95);
+    color: #ecf0f1;
+    padding: 20px;
+    border-radius: 15px;
+    text-align: center;
+    z-index: 10001;
+    font-size: 14px;
+    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+    max-width: 280px;
+    display: none;
+}
+
+.mobile-gesture-hint.show {
+    display: block;
+    animation: fadeInBounce 0.5s ease-out;
+}
+
+@keyframes fadeInBounce {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.8);
+    }
+    60% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.05);
+    }
+    100% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+.mobile-gesture-hint h3 {
+    margin: 0 0 15px 0;
+    color: #3498db;
+    font-size: 16px;
+}
+
+.mobile-gesture-hint ul {
+    text-align: left;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.mobile-gesture-hint li {
+    margin: 8px 0;
+    padding-left: 20px;
+    position: relative;
+}
+
+.mobile-gesture-hint li:before {
+    content: "👆";
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+.mobile-gesture-hint button {
+    margin-top: 15px;
+    padding: 10px 20px;
+    background: #3498db;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+/* === 效能優化 === */
+.person, .map-container {
+    will-change: transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    transform-style: preserve-3d;
+    -webkit-transform-style: preserve-3d;
+}
+
+/* === Safari 特定修正 === */
+@supports (-webkit-touch-callout: none) {
+    body {
+        -webkit-overflow-scrolling: auto;
+    }
+    
+    .map-container {
+        -webkit-overflow-scrolling: auto;
+    }
+}
+
+/* === 防止意外縮放 === */
+input, textarea, select {
+    font-size: 16px !important; /* 防止 iOS Safari 自動縮放 */
+}
