@@ -96,7 +96,7 @@ function renderPeople() {
             case 'person': width = height = gridSpacing * 2 * Math.sqrt(2); break;
             case 'center': width = height = gridSpacing * 3 * Math.sqrt(2); break;
             case 'large': width = height = gridSpacing * 4 * Math.sqrt(2); break;
-            case 'flag': width = gridSpacing * Math.sqrt(2); height = gridSpacing * 2 * Math.sqrt(2); break;
+            case 'flag':div.classList.add('flag-container');width = height = gridSpacing * 15 * Math.sqrt(2); break;
             case 'alliance-flag': div.classList.add('alliance-flag-container'); width = height = gridSpacing * 7 * Math.sqrt(2); break;
             default: width = height = gridSpacing * 2 * Math.sqrt(2);
         }
