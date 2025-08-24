@@ -572,7 +572,6 @@ body {
 html {
     -webkit-text-size-adjust: 100%;
     -ms-text-size-adjust: 100%;
-    touch-action: none;
 }
 
 body {
@@ -587,6 +586,19 @@ body {
     -moz-user-select: none;
     user-select: none;
     will-change: transform; /* 提升渲染效能 */
+}
+
+/* 按鈕和連結的觸控優化 */
+.btn, a, button {
+    touch-action: manipulation !important; /* 允許按鈕正常點擊 */
+    -webkit-tap-highlight-color: rgba(0,0,0,0.1); /* 輕微的點擊高亮 */
+    cursor: pointer;
+}
+
+/* 頂部導航欄的觸控優化 */
+.header, .header * {
+    touch-action: manipulation !important; /* 確保導航欄內的所有元素都可以正常點擊 */
+    pointer-events: auto !important;
 }
 
 /* === 手機端介面調整 === */
@@ -606,7 +618,10 @@ body {
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
         min-height: 60px;
         max-height: 80px;
-        overflow: hidden;
+        overflow: visible; /* 改為 visible 以防按鈕被裁切 */
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
     
     .header h1 {
@@ -615,6 +630,8 @@ body {
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        flex-shrink: 1;
+        max-width: 60%; /* 限制標題寬度，為按鈕留出空間 */
     }
     
     /* 右側控制按鈕組 */
@@ -623,27 +640,46 @@ body {
         align-items: center;
         gap: 8px;
         flex-shrink: 0;
+        flex-wrap: nowrap; /* 防止按鈕換行 */
     }
     
     /* 狀態指示器 */
     .status {
-        font-size: 11px !important;
-        padding: 6px 10px !important;
-        border-radius: 15px !important;
+        font-size: 10px !important;
+        padding: 4px 8px !important;
+        border-radius: 12px !important;
         min-height: auto !important;
         white-space: nowrap;
+        flex-shrink: 0;
     }
     
-    /* 按鈕優化 */
+    /* 按鈕優化 - 更突出的編輯按鈕 */
     .btn {
-        font-size: 12px !important;
+        font-size: 11px !important;
         padding: 8px 12px !important;
-        border-radius: 20px !important;
+        border-radius: 16px !important;
         min-height: auto !important;
         white-space: nowrap;
         font-weight: bold;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         transition: all 0.2s ease;
+        flex-shrink: 0;
+        min-width: 50px; /* 確保按鈕有最小寬度 */
+    }
+    
+    /* 編輯按鈕特別突出 */
+    .btn.edit {
+        background: #e74c3c !important;
+        color: white !important;
+        font-weight: bold;
+        box-shadow: 0 3px 8px rgba(231, 76, 60, 0.3);
+    }
+    
+    .btn.edit:hover,
+    .btn.edit:active {
+        background: #c0392b !important;
+        transform: scale(0.95);
+        box-shadow: 0 2px 6px rgba(231, 76, 60, 0.4);
     }
     
     .btn:active {
