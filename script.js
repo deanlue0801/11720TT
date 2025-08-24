@@ -17,6 +17,12 @@ let selectedIndices = new Set();
 let selectionBox = null;
 let marqueeStartPos = { x: 0, y: 0 };
 
+// 【★★★ 新增變數 - 觸控專用 ★★★】
+let isPinching = false;
+let initialPinchDistance = 0;
+let longPressTimer = null;
+const LONG_PRESS_DURATION = 250; // 長按 250 毫秒觸發拖曳
+
 // --- DOM Elements (will be assigned once DOM is loaded) ---
 let mapContainer, peopleCountEl, coordsEl, newItemNameInput, itemTypeSelect, itemColorSelect, connectionStatusEl, multiSelectBtn, deleteSelectedBtn;
 
@@ -27,11 +33,7 @@ const GRID_ORIGIN_X = MAP_WIDTH / 2;
 const GRID_ORIGIN_Y = MAP_HEIGHT / 2;
 
 // --- Main App Logic ---
-
-// This is the standard and correct way to start the application.
-// It waits for the entire HTML document to be ready before running any code.
 document.addEventListener('DOMContentLoaded', () => {
-    // Assign DOM elements safely now that they are loaded
     mapContainer = document.getElementById('mapContainer');
     peopleCountEl = document.getElementById('peopleCount');
     coordsEl = document.getElementById('coords');
@@ -42,7 +44,6 @@ document.addEventListener('DOMContentLoaded', () => {
     multiSelectBtn = document.getElementById('multiSelectBtn');
     deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
     
-    // Start the application after password check
     if (checkPassword()) {
         initialize();
     }
@@ -95,6 +96,7 @@ window.deleteSelected = function () { if (selectedIndices.size === 0 || !confirm
 
 // --- Rendering ---
 function renderPeople() {
+    // 省略未變更的 renderPeople 函數內容... (與您原本的檔案相同)
     mapContainer.innerHTML = '';
     peopleCountEl.textContent = people.length;
 
@@ -147,19 +149,20 @@ function renderPeople() {
         div.style.height = `${height}px`;
         div.style.left = `${centerPos.x - width / 2}px`;
         div.style.top = `${centerPos.y - height / 2}px`;
-        
+
         div.addEventListener('contextmenu', (e) => { e.preventDefault(); changeColor(index); });
-        
+
         mapContainer.appendChild(div);
     });
-
     if (!isUpdatingFromFirebase) saveToFirebase();
 }
 
+
 // --- Global Event Listeners ---
 function setupGlobalEventListeners() {
+    // --- 滑鼠事件 (電腦版) ---
     const handleMouseDown = (e) => {
-        if (e.button !== 0) return;
+        if (e.button !== 0 || e.touches) return; // 忽略左鍵以外的點擊和觸控事件
         const target = e.target;
 
         if (target.classList.contains('person')) {
@@ -204,7 +207,8 @@ function setupGlobalEventListeners() {
     const handleMouseMove = (e) => {
         const clientX = e.clientX;
         const clientY = e.clientY;
-
+        
+        // ... (滑鼠移動邏輯與您原本的檔案相同，此處省略)
         if (isPanning) {
             const dx = clientX - panStart.x;
             const dy = clientY - panStart.y;
@@ -257,6 +261,7 @@ function setupGlobalEventListeners() {
     };
 
     const handleMouseUp = () => {
+        // ... (滑鼠放開邏輯與您原本的檔案相同，此處省略)
         if (isPanning) {
             isPanning = false;
             mapContainer.style.cursor = 'grab';
@@ -283,6 +288,7 @@ function setupGlobalEventListeners() {
     };
 
     const handleWheel = (e) => {
+        // ... (滑鼠滾輪邏輯與您原本的檔案相同，此處省略)
         e.preventDefault();
         const zoomIntensity = 0.1;
         const oldScale = scale;
@@ -298,7 +304,154 @@ function setupGlobalEventListeners() {
         viewPos.y = e.clientY - mouseY * (scale / oldScale);
         updateMapTransform();
     };
+
+    // 【★★★ 以下是本次新增的觸控事件 ★★★】
+
+    // --- 觸控事件 (手機版) ---
+    const handleTouchStart = (e) => {
+        if (e.touches.length === 2) { // 雙指 -> 縮放
+            isPanning = false; // 確保停止平移
+            isPinching = true;
+            initialPinchDistance = getPinchDistance(e);
+            return;
+        }
+
+        if (e.touches.length === 1) { // 單指
+            const target = e.target;
+            const touch = e.touches[0];
+
+            if (target.classList.contains('person')) {
+                const index = parseInt(target.dataset.index, 10);
+                
+                // 設定長按計時器來啟動拖曳
+                longPressTimer = setTimeout(() => {
+                    if (isMultiSelectMode) return; // 多選模式下長按無效
+                    
+                    isDragging = true;
+                    dragPerson = index;
+                    if (!selectedIndices.has(index)) {
+                        selectedIndices.clear();
+                        deleteSelectedBtn.style.display = 'none';
+                        selectedIndices.add(index);
+                        renderPeople(); // 重新渲染以顯示選取狀態
+                    }
+                    // 標記目標為 dragging
+                    const el = mapContainer.querySelector(`[data-index="${index}"]`);
+                    if (el) el.classList.add('dragging');
+
+                }, LONG_PRESS_DURATION);
+
+            } else if (target === mapContainer) {
+                // 如果點擊背景，則開始平移
+                isPanning = true;
+                panStart = { x: touch.clientX, y: touch.clientY };
+            }
+        }
+    };
+
+    const handleTouchMove = (e) => {
+        e.preventDefault(); // 阻止頁面滾動
+
+        // 如果移動了手指，就取消長按計時器 (避免誤觸拖曳)
+        if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            longPressTimer = null;
+        }
+
+        if (isPinching && e.touches.length === 2) { // 雙指縮放
+            const newDistance = getPinchDistance(e);
+            const oldScale = scale;
+            scale *= newDistance / initialPinchDistance;
+            scale = Math.max(0.1, Math.min(scale, 5));
+
+            const rect = mapContainer.getBoundingClientRect();
+            const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+            const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+            const mouseX = centerX - viewPos.x;
+            const mouseY = centerY - viewPos.y;
+            viewPos.x = centerX - mouseX * (scale / oldScale);
+            viewPos.y = centerY - mouseY * (scale / oldScale);
+
+            updateMapTransform();
+            initialPinchDistance = newDistance;
+
+        } else if (isDragging && selectedIndices.size > 0) { // 拖曳項目
+            const touch = e.touches[0];
+            const clientX = touch.clientX;
+            const clientY = touch.clientY;
+            
+            // ... (拖曳邏輯與滑鼠版 handleMouseMove 相同)
+            const rect = mapContainer.getBoundingClientRect();
+            if (!dragOffset.calculated) {
+                const firstItem = people[dragPerson];
+                const firstItemPos = gridToPixel(firstItem.gridX, firstItem.gridY);
+                dragOffset.x = clientX - (firstItemPos.x * scale + viewPos.x);
+                dragOffset.y = clientY - (firstItemPos.y * scale + viewPos.y);
+                dragOffset.calculated = true;
+                selectedIndices.forEach(idx => {
+                    people[idx].initialGridX = people[idx].gridX;
+                    people[idx].initialGridY = people[idx].gridY;
+                });
+            }
+            const newBasePixelX = (clientX - viewPos.x - dragOffset.x) / scale;
+            const newBasePixelY = (clientY - viewPos.y - dragOffset.y) / scale;
+            const newBaseGrid = pixelToGrid(newBasePixelX, newBasePixelY);
+            const gridDeltaX = newBaseGrid.gridX - people[dragPerson].initialGridX;
+            const gridDeltaY = newBaseGrid.gridY - people[dragPerson].initialGridY;
+            selectedIndices.forEach(idx => {
+                if (!people[idx].locked) {
+                    people[idx].gridX = people[idx].initialGridX + gridDeltaX;
+                    people[idx].gridY = people[idx].initialGridY + gridDeltaY;
+                }
+            });
+            renderPeople();
+
+        } else if (isPanning) { // 平移地圖
+            const touch = e.touches[0];
+            const dx = touch.clientX - panStart.x;
+            const dy = touch.clientY - panStart.y;
+            viewPos.x += dx;
+            viewPos.y += dy;
+            updateMapTransform();
+            panStart = { x: touch.clientX, y: touch.clientY };
+        }
+    };
+
+    const handleTouchEnd = (e) => {
+        // 清除長按計時器
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+
+        // 如果不是在拖曳狀態，且是點擊，則觸發選取
+        if (!isDragging && e.changedTouches.length === 1) {
+             const target = e.target;
+             if (target.classList.contains('person') && isMultiSelectMode) {
+                 const index = parseInt(target.dataset.index, 10);
+                 toggleItemSelection(index);
+             }
+        }
+        
+        // 結束拖曳
+        if (isDragging) {
+            isDragging = false;
+            dragOffset.calculated = false;
+            // 移除 dragging class
+            mapContainer.querySelectorAll('.person.dragging').forEach(el => el.classList.remove('dragging'));
+        }
+
+        // 結束縮放或平移
+        if (e.touches.length < 2) isPinching = false;
+        if (e.touches.length < 1) isPanning = false;
+    };
     
+    // 計算雙指距離
+    function getPinchDistance(e) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+    
+    // --- 註冊事件監聽 ---
     document.addEventListener('mousedown', handleMouseDown);
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
@@ -306,6 +459,12 @@ function setupGlobalEventListeners() {
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && newItemNameInput === document.activeElement) addItem();
     });
+    
+    // 註冊觸控事件
+    document.addEventListener('touchstart', handleTouchStart, { passive: false });
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd);
+    document.addEventListener('touchcancel', handleTouchEnd);
 }
 
 function updateMapTransform() {
