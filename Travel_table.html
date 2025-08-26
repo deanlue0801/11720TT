@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>雪原遊歷選項整理表</title>
+  <style>
+    :root{font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans CJK TC', 'Microsoft JhengHei', 'PingFang TC', Arial;}
+    body{margin:0;background:#f6f8fa;color:#111}
+    header{background:linear-gradient(90deg,#075985,#0ea5a9);color:#fff;padding:18px 20px}
+    .container{max-width:1100px;margin:22px auto;padding:18px;background:#fff;border-radius:10px;box-shadow:0 6px 20px rgba(16,24,40,0.06)}
+    h1{margin:0 0 8px;font-size:20px}
+    p.lead{margin:0 0 14px;color:#374151}
+    .controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+    .controls input[type=text]{flex:1;padding:8px;border:1px solid #e5e7eb;border-radius:6px}
+    .controls select, .controls button{padding:8px;border-radius:6px;border:1px solid #e5e7eb;background:#fff}
+    table{width:100%;border-collapse:collapse;font-size:14px}
+    thead th{background:#f3f4f6;text-align:left;padding:10px;border-bottom:1px solid #e6e9ef}
+    tbody td{padding:10px;border-bottom:1px solid #f1f5f9}
+    tbody tr:hover{background:#fbfdff}
+    .tag{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px}
+    .high{background:#e6fffa;color:#065f46}
+    .low{background:#fff7ed;color:#92400e}
+    .mid{background:#eef2ff;color:#3730a3}
+    @media (max-width:720px){
+      thead{display:none}
+      tbody td{display:block;padding:12px 10px}
+      tbody tr{margin-bottom:10px;border:1px solid #eef2ff;border-radius:8px}
+      tbody td::before{content:attr(data-label);font-weight:600;display:block;margin-bottom:6px;color:#374151}
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container" style="background:transparent;box-shadow:none;padding:0">
+      <h1>雪原遊歷選項整理表</h1>
+      <p class="lead">可搜尋、排序與篩選的互動表格 — 點選欄位標題可排序</p>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="controls">
+      <input id="search" type="text" placeholder="搜尋角色、事件或選項..." />
+      <select id="filter">
+        <option value="all">全部備註</option>
+        <option value="最高">最高</option>
+        <option value="最低">最低</option>
+        <option value="中間">中間</option>
+      </select>
+      <button id="reset">重設</button>
+    </div>
+
+    <table id="sheet">
+      <thead>
+        <tr>
+          <th data-key="role">角色 / 事件</th>
+          <th data-key="option">選項</th>
+          <th data-key="books">書數</th>
+          <th data-key="note">備註</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- rows inserted by JS -->
+      </tbody>
+    </table>
+
+    <p style="margin-top:14px;color:#6b7280">提示：在桌機上點選「書數」欄位可切換排序（升冪/降冪）。</p>
+  </main>
+
+  <script>
+    const DATA = [
+      ["米婭","金斧頭",30,"最低"],
+      ["米婭","銀斧頭",30,"最低"],
+      ["米婭","鐵斧頭",50,"最高"],
+      ["查理","交換物資",50,"最高"],
+      ["查理","不交換",30,"最低"],
+      ["倖存者-孤兒院篇","捐贈物資",50,"最高"],
+      ["倖存者-孤兒院篇","離開",30,"最低"],
+      ["倖存者-北極狼篇","出手相助",50,"最高"],
+      ["倖存者-北極狼篇","提供武器",40,"中間"],
+      ["倖存者-北極狼篇","離開",30,"最低"],
+      ["倖存者-破車篇","幫忙修車",50,"最高"],
+      ["倖存者-破車篇","繼續趕路",30,"最低"],
+      ["倖存者-流浪者篇","施以援手",20,"最高"],
+      ["倖存者-流浪者篇","袖手旁觀",10,"最低"],
+      ["巨獸-劍齒虎","離開",100,"最高"],
+      ["巨獸-劍齒虎","狩獵",70,"最低"],
+      ["巨獸-穴獅","正面攻擊",100,"最高"],
+      ["巨獸-穴獅","暫時躲藏",70,"最低"],
+      ["巨獸-大角鹿","投餵食物",50,"最高"],
+      ["巨獸-大角鹿","離開",30,"最低"],
+      ["掠奪者①","正面進攻",50,"最高"],
+      ["掠奪者①","以智取勝",40,"中間"],
+      ["掠奪者①","離開",30,"最低"],
+      ["掠奪者②","驅趕掠奪者",50,"最高"],
+      ["掠奪者②","繞道而行",30,"最低"],
+      ["掠奪者③","開始戰鬥",50,"最高"],
+      ["掠奪者③","伺機逃脫",30,"最低"],
+      ["掠奪者④","開始戰鬥",50,"最高"],
+      ["掠奪者④","伺機逃脫",30,"最低"],
+      ["九指哈拉爾德","提出決鬥",100,"最高"],
+      ["九指哈拉爾德","強行進攻",70,"最低"],
+      ["謝爾蓋","我來幫忙吧",50,"最高"],
+      ["謝爾蓋","我幫不上忙",30,"最低"],
+      ["矛兵","分享食物",50,"最高"],
+      ["矛兵","僅告知羅慕路斯的去向",30,"最低"],
+      ["法厄同","開始戰鬥",50,"最高"],
+      ["法厄同","伺機逃脫",30,"最低"],
+      ["傭兵","推薦迂迴戰術",100,"最高"],
+      ["傭兵","推薦切斷補給",70,"最低"],
+      ["商人","為他指路",50,"唯一選項"]
+    ];
+
+    const tbody = document.querySelector('#sheet tbody');
+    const searchInput = document.getElementById('search');
+    const filterSelect = document.getElementById('filter');
+    const resetBtn = document.getElementById('reset');
+
+    let currentData = DATA.slice();
+    let sortKey = null; // 'books' etc
+    let sortDir = 1;
+
+    function render(rows){
+      tbody.innerHTML = '';
+      for(const r of rows){
+        const tr = document.createElement('tr');
+        const [role, option, books, note] = r;
+        tr.innerHTML = `
+          <td data-label="角色 / 事件">${role}</td>
+          <td data-label="選項">${option}</td>
+          <td data-label="書數">${books}</td>
+          <td data-label="備註"><span class="tag ${note==='最高'?'high':note==='最低'?'low':'mid'}">${note}</span></td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    function applyFilters(){
+      const q = searchInput.value.trim().toLowerCase();
+      const f = filterSelect.value;
+      let rows = DATA.filter(r => {
+        const matchQ = q === '' || r.join(' ').toLowerCase().includes(q);
+        const matchF = f === 'all' || r[3] === f;
+        return matchQ && matchF;
+      });
+
+      if(sortKey === 'books'){
+        rows.sort((a,b)=> (a[2]-b[2]) * sortDir);
+      } else if(sortKey === 'role'){
+        rows.sort((a,b)=> a[0].localeCompare(b[0]) * sortDir);
+      }
+
+      render(rows);
+    }
+
+    // initial render
+    render(currentData);
+
+    // events
+    searchInput.addEventListener('input', applyFilters);
+    filterSelect.addEventListener('change', applyFilters);
+    resetBtn.addEventListener('click', ()=>{searchInput.value='';filterSelect.value='all';sortKey=null;sortDir=1;render(DATA);});
+
+    // sortable headers
+    document.querySelectorAll('thead th').forEach(th =>{
+      th.style.cursor = 'pointer';
+      th.addEventListener('click', ()=>{
+        const key = th.dataset.key;
+        if(sortKey === key) sortDir = -sortDir; else { sortKey = key; sortDir = 1 }
+        applyFilters();
+      })
+    });
+  </script>
+</body>
+</html>
